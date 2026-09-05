@@ -140,11 +140,21 @@ async def close_cycle(db: Database, cohort_id: int) -> list[int]:
 
 
 async def join_cohort(db: Database, cohort_id: int, user_id: int) -> bool:
-    """Idempotent; True when this is a new or renewed membership (rowcount 0 = already in)."""
+    """Idempotent; True when this is a new or renewed membership (rowcount 0 = already in).
+
+    Joining CLEARS dnf: /dnf is how a member sets the book down and /join is the only way
+    back, so without this the flag is permanent for the month -- the club's did-not-finish
+    share stays inflated and /mystats keeps counting a book they went back to. joined_at
+    only moves for somebody who actually left, so picking the book up again does not
+    reshuffle the roster.
+    """
     cur = await db.run(
         "INSERT INTO cohort_members (cohort_id, user_id, role_granted) VALUES (?,?,1)"
         " ON CONFLICT (cohort_id, user_id) DO UPDATE SET left_at=NULL, role_granted=1,"
-        " joined_at=unixepoch() WHERE cohort_members.left_at IS NOT NULL", cohort_id, user_id)
+        " dnf=0, dnf_reason=NULL, joined_at=CASE WHEN cohort_members.left_at IS NOT NULL"
+        " THEN unixepoch() ELSE cohort_members.joined_at END"
+        " WHERE cohort_members.left_at IS NOT NULL OR cohort_members.dnf = 1",
+        cohort_id, user_id)
     return bool(cur.rowcount)
 
 

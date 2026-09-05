@@ -2,7 +2,9 @@
 library: ingesting from it must COPY, because library.ingest() deletes what it is given.
 """
 
+import pathlib
 import sqlite3
+from types import SimpleNamespace
 
 import pytest
 
@@ -112,3 +114,19 @@ async def test_calibre_failures_are_reported_not_raised(db, tmp_path):
     lib, epub = mklibrary(tmp_path)
     epub.unlink()
     assert await quote.take_from_calibre(db, str(lib), 201, True, tmp) == quote.GONE
+
+
+async def test_the_picker_disambiguates_a_library_that_holds_the_same_book_twice(monkeypatch):
+    """Calibre libraries collect duplicate imports (the same title imported from two
+    sources). Two picker rows reading exactly the same are unpickable, so the repeat
+    carries its Calibre id -- and a title that appears once still reads clean."""
+    entries = [calibre.Entry(1, "The Kite Runner", "Khaled Hosseini", pathlib.Path("a.epub")),
+               calibre.Entry(9, "The Kite Runner", "Khaled Hosseini", pathlib.Path("b.epub")),
+               calibre.Entry(4, "Piranesi", "Susanna Clarke", pathlib.Path("c.epub"))]
+    monkeypatch.setattr(calibre, "search", lambda *a, **k: entries)
+    cog = quote.Quote(SimpleNamespace(cfg=SimpleNamespace(calibre_library="/lib")))
+    got = [c.name for c in await cog.calibre_ac(None, "")]
+    assert got == ["The Kite Runner - Khaled Hosseini (#1)",
+                   "The Kite Runner - Khaled Hosseini (#9)",
+                   "Piranesi - Susanna Clarke"]
+

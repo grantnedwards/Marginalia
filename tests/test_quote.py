@@ -180,3 +180,22 @@ async def test_ingest_reports_drm_plainly(db, tmp_path):
                    "</EncryptedData></encryption>")
     assert await quote.take(db, str(p), True) == quote.DRM
     assert not p.exists()
+
+
+async def test_purge_refuses_a_book_a_cohort_still_holds_before_asking_to_confirm(db):
+    """The cohorts FK is RESTRICT, so the delete would fail anyway -- but the organizer
+    must learn that at the dry run, not after typing confirm: True on a real takedown."""
+    dry = await quote.purge(db, 1, confirm=False)
+    assert dry.startswith(quote.IN_USE) and "2026-09" in dry
+    assert await quote.purge(db, 1, confirm=True) == dry  # confirming changes nothing
+    assert await db.one("SELECT 1 FROM books WHERE id = 1") is not None
+
+
+async def test_purge_deletes_a_book_no_cohort_holds(db):
+    await db.run("INSERT INTO books (id, title, author, chapter_count, word_count,"
+                 " char_count, source_sha256, ingested_at) VALUES (2,'Frankenstein','Shelley',"
+                 "43,89393,500000,'sha2',unixepoch())")
+    assert (await quote.purge(db, 2, confirm=False)).startswith("This would permanently")
+    assert (await quote.purge(db, 2, confirm=True)).startswith("Deleted Frankenstein")
+    assert await db.one("SELECT 1 FROM books WHERE id = 2") is None
+

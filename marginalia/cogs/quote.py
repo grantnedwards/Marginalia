@@ -180,6 +180,13 @@ async def purge(db: Database, book_id: int, confirm: bool) -> str:
     what = (f"{book['title']} by {book['author']} -- {book['chapter_count']} chapters,"
             f" {book['word_count']} words, all stored text, its search index and every"
             " quote-ledger entry for it")
+    # Ask FIRST, so the dry run does not promise a deletion the cohorts FK will refuse.
+    # Without this the organizer is told "re-run with confirm: True", does, and only then
+    # learns the book is spoken for -- the confirmation step is where the answer belongs.
+    held = await db.one("SELECT cycle_month FROM cohorts WHERE book_id = ?"
+                        " ORDER BY id DESC LIMIT 1", book_id)
+    if held is not None:
+        return f"{IN_USE} It is the book for {held['cycle_month']} -- /cycle-close that first."
     if not confirm:
         return f"This would permanently delete {what}. Re-run with confirm: True."
     try:
@@ -272,8 +279,12 @@ class Quote(commands.Cog):
             found = await asyncio.to_thread(calibre.search, lib, current)
         except calibre.CalibreError:
             return []  # a missing mount must not make the picker hang or error
-        return [app_commands.Choice(name=f"{e.title} - {e.author}"[:100], value=e.book_id)
-                for e in found]
+        labels = [f"{e.title} - {e.author}" for e in found]
+        # A Calibre library collects duplicate imports, and two rows reading exactly the
+        # same are unpickable -- so every member of a repeated label carries its id.
+        return [app_commands.Choice(
+            name=(f"{lab} (#{e.book_id})" if labels.count(lab) > 1 else lab)[:100],
+            value=e.book_id) for lab, e in zip(labels, found, strict=True)]
 
     @app_commands.command(name="ingest-library",
                           description="Organizer: add a book from the Calibre library.")

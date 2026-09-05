@@ -12,7 +12,7 @@ per-member nagging). Pace, stats and DNF are self-only and unattributed.
 from __future__ import annotations
 
 import asyncio
-from datetime import UTC, date, datetime, time
+from datetime import date, time
 
 import aiosqlite
 import discord
@@ -169,17 +169,17 @@ async def progress_of(db: Database, cohort_id: int, user_id: int, unit: str) -> 
 async def pace_of(db: Database, cohort_id: int, user_id: int,
                   now: int) -> tuple[float, int, str] | None:
     """(percent, units ahead of plan, unit) for one member; None with no plan."""
-    row = await db.one("SELECT MIN(due_at_utc) a, MAX(due_at_utc) b, MAX(end_ref) total,"
-                       " MIN(unit) u FROM checkpoints WHERE cohort_id = ?"
-                       " AND is_meeting_anchor = 0", cohort_id)
+    # `due` is the furthest point the checkpoints that have already landed asked for --
+    # 0 before the first one falls due. The meeting anchor is excluded, as everywhere
+    # else: it is a date, not a reading target.
+    row = await db.one("SELECT MAX(end_ref) total, MIN(unit) u, COALESCE(MAX(CASE WHEN"
+                       " due_at_utc <= ? THEN end_ref END), 0) due FROM checkpoints"
+                       " WHERE cohort_id = ? AND is_meeting_anchor = 0", now, cohort_id)
     if row is None or row["total"] is None:
         return None
     unit = str(row["u"])
     done = await progress_of(db, cohort_id, user_id, unit)
-    pct, delta = schedule.pace(
-        int(row["total"]), done,
-        datetime.fromtimestamp(int(row["a"]) - WEEK, UTC),  # week 1 covers the week before due 1
-        datetime.fromtimestamp(int(row["b"]), UTC), datetime.fromtimestamp(now, UTC))
+    pct, delta = schedule.pace(int(row["total"]), done, int(row["due"]))
     return pct, delta, unit
 
 

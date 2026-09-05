@@ -1,6 +1,6 @@
 """Only the silent bugs: exact coverage, remainder placement, DST, grace, pace."""
 
-from datetime import UTC, date, datetime, time, timedelta
+from datetime import date, time, timedelta
 from zoneinfo import ZoneInfo
 
 import pytest
@@ -78,9 +78,17 @@ def test_meeting_reminders_are_bounded_and_hold_local_wall_across_dst():
         (19, timedelta(hours=-6)), (19, timedelta(hours=-5))]
 
 
-def test_pace_on_pace_boundary_and_zero_length_schedule():
-    t0 = datetime(2027, 1, 1, tzinfo=UTC)
-    t1 = t0 + timedelta(days=10)
-    assert schedule.pace(100, 50, t0, t1, t0 + timedelta(days=5)) == (50.0, 0)
-    assert schedule.pace(100, 40, t0, t1, t0 + timedelta(days=5))[1] == -10
-    assert schedule.pace(100, 10, t0, t0, t0) == (10.0, -90)  # no ZeroDivisionError
+def test_pace_measures_against_the_checkpoints_that_have_fallen_due():
+    """The old version interpolated over the calendar, so a member who had read exactly
+    what was asked read as behind for six days out of seven. Nothing new is owed until
+    the next checkpoint lands."""
+    assert schedule.pace(4, 1, 1) == (25.0, 0)        # read chapter 1, chapter 1 was due
+    assert schedule.pace(4, 1, 2)[1] == -1            # chapter 2 has landed, they are one off
+    assert schedule.pace(4, 3, 1)[1] == 2             # two ahead of the plan
+    assert schedule.pace(4, 0, 0) == (0.0, 0)         # before the first one, nobody is behind
+    assert schedule.pace(4, 0, 99)[1] == -4           # clamped: never past the end of the book
+
+
+def test_pace_rejects_a_book_with_no_units():
+    with pytest.raises(ValueError):
+        schedule.pace(0, 0, 0)

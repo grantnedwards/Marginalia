@@ -340,7 +340,8 @@ async def test_next_offers_the_thread_as_a_link_button(db):
 
 
 @pytest.mark.parametrize("delta,gap", [
-    (0, "right on the plan"), (3, "3 chapters ahead"), (-2, "2 chapters from the plan")])
+    (0, "right on the plan"), (3, "3 chapters ahead"), (-2, "2 chapters from the plan"),
+    (1, "1 chapter ahead"), (-1, "1 chapter from the plan")])  # not "1 chapters"
 def test_pace_embed_pairs_the_bar_with_the_gap(delta, gap):
     e = v.pace_embed(52.0, delta, "chapter")
     assert e.description == v.bar(52.0)

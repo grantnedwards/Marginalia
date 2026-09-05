@@ -95,8 +95,10 @@ def thread_view(guild_id: int, thread_id: int | None) -> discord.ui.View | None:
 def pace_embed(pct: float, delta: int, unit: str) -> discord.Embed:
     """Bar first: on a phone the member reads the bar and stops. Behind is phrased as
     distance from the plan -- never a reprimand, and never compared to anyone else."""
+    off = abs(delta)
     gap = ("right on the plan" if delta == 0 else
-           f"{abs(delta)} {unit}s {'ahead' if delta > 0 else 'from the plan'}")
+           f"{off} {unit if off == 1 else unit + 's'}"
+           f" {'ahead' if delta > 0 else 'from the plan'}")
     e = discord.Embed(title="Your pace", description=bar(pct), colour=COLOUR)
     e.add_field(name="Versus the plan", value=gap, inline=False)
     e.set_footer(text="Only you can see this.")
@@ -307,12 +309,13 @@ def help_embed() -> discord.Embed:
         "`/dnf` -- set the book down quietly; `/library` -- everything the club has read\n"
         "`/roster` `/mystats` `/nominate`"))
     e.add_field(name="Running the club (organizers)", inline=False, value=(
-        "1. `/ingest` the EPUB (optional, enables quoting)\n"
+        "1. `/ingest` or `/ingest-library` the EPUB (optional, enables quoting)\n"
         "2. `/ballot` after members `/nominate`, then `/ballot-result` when it closes\n"
         "3. `/cycle-open` in the club channel -- posts the Join button\n"
         "4. `/schedule` the weekly checkpoints; `/meeting` the wrap-up\n"
         "5. `/cycle-close` at the end of the month\n"
-        "`/status` shows whether reminders are actually running"))
+        "`/status` shows whether reminders are actually running\n"
+        "`/cycle-book` repoints an open cycle; `/purge_book` deletes a book"))
     e.set_footer(text="Everything personal is only visible to you. Nothing here ranks anyone.")
     return e
 

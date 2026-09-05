@@ -100,15 +100,16 @@ def reminders_for_meeting(due: Wall) -> list[Reminder]:
     ]
 
 
-def pace(total: int, done: int, start: datetime, end: datetime, now: datetime) -> tuple[float, int]:
-    """(percent complete 0..100, units ahead of schedule) -- negative is behind."""
+def pace(total: int, done: int, expected: int) -> tuple[float, int]:
+    """(percent complete 0..100, units ahead of the plan) -- negative is behind.
+
+    `expected` is what the checkpoints that have already FALLEN DUE asked for, not a
+    share of the elapsed calendar. That distinction is the whole point: on a weekly plan
+    nothing new is owed until the next checkpoint lands, so a member who has read exactly
+    what was asked reads as 0 rather than as "a chapter behind" for six days out of every
+    seven. Clamped into 0..total, so a hand-edited row cannot put the expectation past
+    the end of the book.
+    """
     if total < 1:
         raise ValueError(f"total must be >= 1, got {total}")
-    span = (end - start).total_seconds()
-    if span <= 0:
-        frac = 1.0 if now >= end else 0.0
-    else:
-        frac = min(1.0, max(0.0, (now - start).total_seconds() / span))
-    # ponytail: linear pace, move to per-checkpoint expectation if members with
-    # an uneven schedule complain that mid-week reads as "behind".
-    return 100.0 * done / total, done - round(total * frac)
+    return 100.0 * done / total, done - max(0, min(expected, total))

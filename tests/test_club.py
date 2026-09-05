@@ -54,6 +54,22 @@ async def test_join_is_idempotent_and_rejoin_works(db):
     assert await cycle.roster_ids(db, cid) == [U1]
 
 
+async def test_rejoining_picks_the_book_back_up_and_clears_dnf(db):
+    """/dnf is the only way to set the book down and /join the only way back, so without
+    this the flag is permanent for the month: the club's did-not-finish share stays
+    inflated and /mystats keeps counting a book the member went back to."""
+    cid = await cycle.open_cycle(db, G, 7, await nom(db, "Ulysses"), cycle_month="2026-09")
+    await cycle.join_cohort(db, cid, U1)
+    joined = (await db.one("SELECT joined_at FROM cohort_members WHERE user_id=?", U1))[0]
+    await db.run("UPDATE cohort_members SET dnf=1, dnf_reason='lost the thread'"
+                 " WHERE cohort_id=? AND user_id=?", cid, U1)
+    assert await cycle.join_cohort(db, cid, U1) is True  # a rejoin, not a no-op
+    row = await db.one("SELECT dnf, dnf_reason, joined_at FROM cohort_members"
+                       " WHERE cohort_id=? AND user_id=?", cid, U1)
+    assert (row["dnf"], row["dnf_reason"]) == (0, None)
+    assert row["joined_at"] == joined  # they never left, so the roster order is untouched
+
+
 async def test_shortlist_excludes_a_book_from_an_ended_cohort(db):
     prev = await nom(db, "Dune", month="2026-08")
     await cycle.close_cycle(db, await cycle.open_cycle(db, G, 7, prev, cycle_month="2026-08"))
