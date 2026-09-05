@@ -16,8 +16,8 @@ export const meta = {
 // --------------------------------------------------------------------- inputs
 
 const A = args || {}
-const ROOT = A.root || '/mnt/cache/appdata/marginalia/src'
-const DATA = A.data || '/mnt/cache/appdata/marginalia'
+const ROOT = A.root || '/mnt/cache/appdata/marginalia'
+const DATA = A.data || '/mnt/cache/appdata/marginalia/data'
 const DB = DATA + '/marginalia.db'
 const NAME = 'marginalia'
 const GUILD = A.guild_id || '<GUILD_ID from deploy/.env>'

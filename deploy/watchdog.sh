@@ -1,6 +1,7 @@
 #!/bin/bash
-# marginalia scheduler watchdog -- runs on the unRAID HOST via User Scripts,
-# cron */5 * * * *. Safe and idempotent at any frequency.
+# marginalia scheduler watchdog -- runs on the unRAID HOST from root's crontab,
+# */5 * * * * (installed and persisted by deploy/unraid-install.sh; log in
+# /var/log/marginalia-watchdog.log). Safe and idempotent at any frequency.
 #
 # WHY THIS EXISTS: process liveness is not scheduler liveness. `restart:
 # unless-stopped` only catches the process dying. The real failure is an
@@ -18,7 +19,7 @@
 
 set -uo pipefail
 
-DB=/mnt/cache/appdata/marginalia/marginalia.db
+DB=/mnt/cache/appdata/marginalia/data/marginalia.db
 NAME=marginalia
 # bot.py gives up restarting the internal loop after RESTART_GIVE_UP=6
 # consecutive failures BY DESIGN, with backoff 5+10+20+40+60 = ~135s, so it can
@@ -40,11 +41,12 @@ fi
 # A container an operator STOPPED is not a stale scheduler, it is a stopped
 # container -- and its heartbeat goes stale by definition. Without this guard
 # `docker stop marginalia` for maintenance is silently undone within 5 minutes,
-# and keeping the bot down means remembering to disable the User Script too.
+# and keeping the bot down means remembering to disable the cron too.
 # Only a RUNNING container with a stale beat is the failure this script catches.
-# `docker inspect` also exits non-zero when the container does not exist at all;
+# `docker container inspect` (not plain inspect, which would match the IMAGE of the same
+# name) also exits non-zero when the container does not exist at all;
 # that is likewise nothing to do, not an error worth logging as one.
-if [ "$(docker inspect -f '{{.State.Running}}' "$NAME" 2>/dev/null)" != "true" ]; then
+if [ "$(docker container inspect -f '{{.State.Running}}' "$NAME" 2>/dev/null)" != "true" ]; then
   log "$NAME is not running (stopped or absent) -- not our business, leaving it alone"; exit 0
 fi
 

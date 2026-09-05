@@ -1,0 +1,31 @@
+<?xml version="1.0"?>
+<Container version="2">
+  <Name>marginalia</Name>
+  <Repository>marginalia:latest</Repository>
+  <Registry/>
+  <Network>bridge</Network>
+  <MyIP/>
+  <Shell>bash</Shell>
+  <Privileged>false</Privileged>
+  <Support>https://github.com/grantnedwards/Marginalia</Support>
+  <Project>https://github.com/grantnedwards/Marginalia</Project>
+  <Overview>Discord book-club bot for one server: monthly cycles, nomination polls, a weekly checkpoint schedule with reminders and a discussion thread per checkpoint, and spoiler-gated quoting from an EPUB. Built locally from /mnt/cache/appdata/marginalia (deploy/unraid-install.sh rebuilds and recreates it). No ports: the bot connects OUT to Discord. Database lives in /mnt/cache/appdata/marginalia/data -- keep it on /mnt/cache, never /mnt/user. Watchdog and daily backup run from root's crontab.</Overview>
+  <Category>Other:</Category>
+  <WebUI/>
+  <TemplateURL/>
+  <Icon>https://raw.githubusercontent.com/selfhst/icons/main/png/discord.png</Icon>
+  <ExtraParams>--restart=unless-stopped --stop-signal=SIGINT</ExtraParams>
+  <PostArgs/>
+  <CPUset/>
+  <DateInstalled>1788600000</DateInstalled>
+  <DonateText/>
+  <DonateLink/>
+  <Requires/>
+  <Config Name="Data (database)" Target="/data" Default="/mnt/cache/appdata/marginalia/data" Mode="rw" Description="SQLite database + WAL sidecars. MUST stay on /mnt/cache (direct disk): /mnt/user is FUSE and corrupts SQLite WAL." Type="Path" Display="always" Required="true" Mask="false">/mnt/cache/appdata/marginalia/data</Config>
+  <Config Name="DISCORD_TOKEN" Target="DISCORD_TOKEN" Default="" Mode="" Description="Bot token from the Discord Developer Portal (Bot -> Reset Token). The only secret." Type="Variable" Display="always" Required="true" Mask="true"></Config>
+  <Config Name="GUILD_ID" Target="GUILD_ID" Default="" Mode="" Description="Your Discord server's ID (right-click the server icon -> Copy Server ID; needs Developer Mode)." Type="Variable" Display="always" Required="true" Mask="false"></Config>
+  <Config Name="BOOK_CLUB_CHANNEL_ID" Target="BOOK_CLUB_CHANNEL_ID" Default="" Mode="" Description="The one channel the club lives in (right-click the channel -> Copy Channel ID)." Type="Variable" Display="always" Required="true" Mask="false"></Config>
+  <Config Name="CLUB_TZ" Target="CLUB_TZ" Default="America/Los_Angeles" Mode="" Description="The club's timezone (IANA name). /schedule at:19:00 means 19:00 here; readers still see their own local time." Type="Variable" Display="always" Required="true" Mask="false">America/Los_Angeles</Config>
+  <Config Name="TZ" Target="TZ" Default="America/Los_Angeles" Mode="" Description="Container timezone for log timestamps." Type="Variable" Display="advanced" Required="false" Mask="false">America/Los_Angeles</Config>
+  <Config Name="MARGINALIA_DB" Target="MARGINALIA_DB" Default="/data/marginalia.db" Mode="" Description="Database path INSIDE the container. Leave as is." Type="Variable" Display="advanced" Required="true" Mask="false">/data/marginalia.db</Config>
+</Container>
