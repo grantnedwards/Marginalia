@@ -331,11 +331,14 @@ async def test_a_cover_extractor_that_raises_cannot_fail_an_ingest(db, tmp_path,
 
 # ------------------------------------------------------- the migration ladder
 
-async def test_a_v1_database_migrates_to_v2_and_keeps_its_rows(tmp_path, monkeypatch):
+async def test_a_v1_database_climbs_the_whole_ladder_and_keeps_its_rows(tmp_path, monkeypatch):
+    """Written against max(MIGRATIONS), never a hardcoded version: adding migration N
+    should fail here only if it really breaks an upgrade, not just because it exists."""
     path = str(tmp_path / "ladder.db")
     old = Database(path)
     await old.connect()
-    monkeypatch.delitem(dbmod.MIGRATIONS, 2)  # a database that stopped at version 1
+    for version in [v for v in dbmod.MIGRATIONS if v > 1]:  # a database that stopped at v1
+        monkeypatch.delitem(dbmod.MIGRATIONS, version)
     assert await old.migrate() == 1
     await old.run("INSERT INTO books (id, title) VALUES (7, 'Old Book')")
     await old.close()
@@ -343,9 +346,13 @@ async def test_a_v1_database_migrates_to_v2_and_keeps_its_rows(tmp_path, monkeyp
 
     new = Database(path)
     await new.connect()
-    assert await new.migrate() == 2
+    assert await new.migrate() == max(dbmod.MIGRATIONS)
     row = await new.one("SELECT title, cover, cover_mime FROM books WHERE id = 7")
     assert (row["title"], row["cover"], row["cover_mime"]) == ("Old Book", None, None)
+    # Every later migration's columns are really on the upgraded database, not just on
+    # a fresh one -- an ALTER that only ever ran in schema.sql would pass without this.
+    cols = {r[1] for r in await new.all("PRAGMA table_info(cohorts)")}
+    assert {"signup_message_id", "roster_message_id"} <= cols
     await new.close()
 
 

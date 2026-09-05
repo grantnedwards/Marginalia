@@ -9,7 +9,8 @@ from typing import Any
 import aiosqlite
 
 # Append-only: bump the schema by adding 2: "0002_whatever.sql", never by editing schema.sql.
-MIGRATIONS: dict[int, str] = {1: "schema.sql", 2: "migrations/002_cover.sql"}
+MIGRATIONS: dict[int, str] = {1: "schema.sql", 2: "migrations/002_cover.sql",
+                              3: "migrations/003_roster_message.sql"}
 
 # foreign_keys is OFF BY DEFAULT in SQLite -- without this opt-in every REFERENCES and ON DELETE
 # CASCADE in schema.sql is decoration (tests/test_db.py::test_foreign_keys_enforced proves it took).

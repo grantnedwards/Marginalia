@@ -14,6 +14,7 @@ per-member nagging). /pace, /mystats and /dnf are ephemeral, self-only, unattrib
 from __future__ import annotations
 
 import asyncio
+import logging
 from datetime import UTC, date, datetime, time
 from typing import Literal
 
@@ -42,6 +43,8 @@ from marginalia.progress import (
 )
 from marginalia.timefmt import unix, when
 
+log = logging.getLogger("marginalia.reading")
+
 EVENT_CAP = 100  # SCHEDULED-or-ACTIVE scheduled events, per guild
 EVENT_SECS = 3600
 # Discord shows these as a dropdown; nobody has to know that Monday is 0.
@@ -68,6 +71,11 @@ class Reading(commands.Cog):
         the only available encoding. Discord also sends NO advance event reminder, only a
         go-live ping -- which is why marginalia.reminders exists: do not delete the poller
         believing these cover T-24h and T-1h.
+
+        # ponytail: a re-plan ADDS a fresh set rather than reconciling with the events an
+        # earlier run made, so the Events tab collects duplicates. Pass `events: False`
+        # when re-running /schedule, or delete the stale ones by hand. Reconciling means
+        # deleting the bot's own events, which is destructive enough not to do blind.
         """
         live = (discord.EventStatus.scheduled, discord.EventStatus.active)
         if sum(1 for e in guild.scheduled_events if e.status in live) + len(cps) > EVENT_CAP:
@@ -75,16 +83,24 @@ class Reading(commands.Cog):
         made = 0
         for cp in cps:
             try:
+                # NO `channel=` KEY AT ALL. An EXTERNAL event forbids a channel, but the
+                # library's sentinel is MISSING, not None -- `channel=None` counts as SET
+                # and raises TypeError before a request is ever made. This shipped that
+                # way and created zero events, silently, because the TypeError also broke
+                # out of the confirm callback. Same MISSING-vs-None trap as `file=None`
+                # in club._reply; do not "clarify" it by passing None back in.
                 await guild.create_scheduled_event(
                     name=f"{month} {cp.label}"[:100], start_time=cp.due.instant,
                     end_time=datetime.fromtimestamp(unix(cp.due.instant) + EVENT_SECS, UTC),
                     entity_type=discord.EntityType.external,
                     privacy_level=discord.PrivacyLevel.guild_only,
-                    channel=None,  # EXTERNAL forbids a channel ...
-                    location=loc)  # ... and requires a location in entity_metadata
-            except (discord.Forbidden, discord.NotFound):
-                # Terminal. Creation needs create_events (bit 44) -- the library
-                # docstring's manage_events is STALE.
+                    location=loc)  # EXTERNAL requires a location in entity_metadata
+            except (discord.HTTPException, TypeError, ValueError):
+                # Terminal for the whole batch. Creation needs create_events (bit 44) --
+                # the library docstring's manage_events is STALE. Caught broadly on
+                # purpose: the calendar is a nicety, and nothing here may cost the
+                # organizer the confirmation that their checkpoints were written.
+                log.warning("scheduled events stopped after %d", made, exc_info=True)
                 break
             made += 1
             await asyncio.sleep(THROTTLE)
@@ -143,9 +159,14 @@ class Reading(commands.Cog):
                 ch = inter.guild.get_channel(int(co["channel_id"]))
                 made = await self._events(inter.guild, co["cycle_month"], cps,
                                           f"#{ch.name}" if ch else "Discord")
+            # The checkpoints are already committed by here, so the organizer is TOLD
+            # so even if the calendar half went wrong. Reporting "0 events" is a far
+            # better failure than a button that appears to do nothing.
             await inter.edit_original_response(
                 content=f"Scheduled {n} checkpoints, {rem} new reminders, {made} events."
-                        " Reminders already sent were left alone.", view=None)
+                        + ("" if made or not events else
+                           " (No events: check the bot has Create Events, or see the log.)")
+                        + " Reminders already sent were left alone.", view=None)
 
         await interaction.edit_original_response(content=preview, view=_views.Confirm(run))
 

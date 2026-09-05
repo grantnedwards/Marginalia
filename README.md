@@ -69,7 +69,7 @@ Organizer commands are hidden from members. Grant them to a role under
 | 1 | `/ballot` | Posts the poll from this cycle's nominations. Closes in 72 hours. |
 | 2 | `/ballot-result` | Reads the finished poll. A tie is reported as a tie. |
 | 3 | `/cycle-open` | In the club channel. Pick the winning nomination (autocomplete) and, if you ingested it, the book. Creates the month's role and posts the Join card. |
-| 4 | `/schedule` | `total` pages (or chapters), `weeks`, a weekday from the dropdown, a time. Shows a preview; nothing is written until you press **Create schedule**. Re-run to change it. |
+| 4 | `/schedule` | `total` pages (or chapters), `weeks`, a weekday from the dropdown, a time. Shows a preview; nothing is written until you press **Create schedule**. Safe to re-run: sent reminders are left alone. Pass `events: False` on a re-run, or the Events tab gets duplicates. |
 | 5 | `/meeting` | Date and time of the wrap-up. Two reminders. |
 | 6 | `/cycle-close` | Ends the month and removes the role from everyone. History is kept. |
 | any | `/status` | Is the bot actually scheduling? Green, yellow or red. |

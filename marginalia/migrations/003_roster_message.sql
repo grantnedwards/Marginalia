@@ -1,0 +1,11 @@
+-- Migration 3. Append-only: never edit schema.sql or an earlier migration, or a fresh
+-- install replays them and the ALTER below fails with "duplicate column name".
+--
+-- /roster posts a PUBLIC card that would otherwise freeze at the headcount it had when
+-- someone ran it. This remembers the most recent one per cohort so join and leave can
+-- rewrite it, the same way signup_message_id already lets them rewrite the signup card.
+--
+-- Only the NEWEST roster message is tracked, deliberately. Following every roster
+-- message ever posted would mean unbounded edits per join and a rate-limit problem for
+-- a cosmetic gain; older ones stay as the snapshot they were.
+ALTER TABLE cohorts ADD COLUMN roster_message_id INTEGER;

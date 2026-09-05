@@ -12,8 +12,8 @@ from discord import app_commands
 from discord.ext import commands
 
 from marginalia import library, reminders
+from marginalia.cogs import _card
 from marginalia.cogs._views import (
-    JOINED_FIELD,
     ballot_embed,
     cover_file,
     help_embed,
@@ -187,31 +187,6 @@ class Club(commands.Cog):
 
     # --- members ----------------------------------------------------------------------
 
-    async def _sync_card(self, interaction: discord.Interaction, cohort) -> None:
-        """Keep the signup card's count live instead of frozen at its posting time.
-
-        The button is already ON that message, so the button path needs no fetch; /join
-        and /leave fetch it by the id cycle_open stored. Edits the ONE field rather than
-        rebuilding the embed, so the cover thumbnail and everything else survive. Every
-        failure is swallowed: a stale count is cosmetic and must never fail a join.
-        """
-        try:
-            msg = interaction.message
-            if msg is None and cohort["signup_message_id"]:
-                ch = interaction.guild.get_channel(int(cohort["channel_id"]))
-                msg = await ch.fetch_message(int(cohort["signup_message_id"])) if ch else None
-            if msg is None or not msg.embeds:
-                return
-            embed = msg.embeds[0]
-            at = next((i for i, f in enumerate(embed.fields) if f.name == JOINED_FIELD), None)
-            count = str(len(await roster_ids(self.db, cohort["id"])))
-            if at is None or embed.fields[at].value == count:
-                return  # unchanged: do not spend an edit, they are rate-limited per message
-            embed.set_field_at(at, name=JOINED_FIELD, value=count, inline=True)
-            await msg.edit(embed=embed)
-        except (discord.HTTPException, AttributeError, KeyError):
-            pass
-
     async def opt_in(self, interaction: discord.Interaction, cohort_id: int) -> None:
         """Shared by /join and the persistent button."""
         cohort = await self.db.one("SELECT * FROM cohorts WHERE id=?", cohort_id)
@@ -223,7 +198,8 @@ class Club(commands.Cog):
         await _reply(interaction, err or (
             f"You're in for {cohort['cycle_month']}. Try /next to see what is due first."
             if fresh else "You're already in for this month."))
-        await self._sync_card(interaction, cohort)
+        await _card.sync_count(self.db, interaction, cohort)
+        await _card.sync_roster(self.db, interaction, cohort)
 
     @app_commands.command(description="How Marginalia works, and every command in one place.")
     async def help(self, interaction: discord.Interaction) -> None:
@@ -241,7 +217,8 @@ class Club(commands.Cog):
         await leave_cohort(self.db, cohort["id"], interaction.user.id)
         err = await _apply_role(interaction.user, self._role(interaction.guild, cohort), add=False)
         await _reply(interaction, err or "You're out. Rejoin any time with /join.")
-        await self._sync_card(interaction, cohort)
+        await _card.sync_count(self.db, interaction, cohort)
+        await _card.sync_roster(self.db, interaction, cohort)
 
     @app_commands.command(description="Who is reading with us this month.")
     async def roster(self, interaction: discord.Interaction) -> None:
@@ -255,6 +232,11 @@ class Club(commands.Cog):
         await _reply(interaction, f"{role.mention if role else cohort['cycle_month']} --"
                      f" {len(ids)} reading this month.", quiet=False,
                      embed=roster_embed(cohort["cycle_month"], ids))
+        # Remember the newest one so /join and /leave keep its headcount honest. Older
+        # roster messages stay as the snapshot they were; see migration 3.
+        card = await interaction.original_response()
+        await self.db.run("UPDATE cohorts SET roster_message_id=? WHERE id=?",
+                          card.id, cohort["id"])
 
     @app_commands.command(description="Nominate a book for the next cycle.")
     async def nominate(self, interaction: discord.Interaction) -> None:
@@ -340,8 +322,12 @@ class Club(commands.Cog):
         except ValueError as exc:
             await _reply(interaction, f"Cannot attach that: {exc}.")
             return
+        # The card was posted against the old book, so it shows the old title and, if the
+        # cycle was opened before the EPUB existed, no cover at all. Rebuild it.
+        redrawn = await _card.rebuild(self.db, interaction, cohort)
         await _reply(interaction, f"{cohort['cycle_month']} now reads **{new}**"
                      + (f", was **{old}**." if old != new else ".")
+                     + (" The signup card now shows it, cover and all." if redrawn else "")
                      + " Re-run /schedule so the checkpoints unlock real chapters.")
 
     @app_commands.command(name="cycle-close",

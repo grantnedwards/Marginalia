@@ -6,6 +6,7 @@ what the cog hands ``send_message``. Discord itself is never called.
 
 from datetime import UTC, date, datetime, time
 from pathlib import Path
+from types import SimpleNamespace
 
 import discord
 import pytest
@@ -120,6 +121,46 @@ async def test_unlock_is_idempotent(db):
     assert (await db.one("SELECT COUNT(*) FROM channel_policy"))[0] == 1
     pol = await db.one("SELECT * FROM channel_policy WHERE channel_id = 999")
     assert (pol["kind"], pol["max_chapter"]) == ("chapter_thread", 5)
+
+
+async def test_scheduled_events_never_pass_a_channel_for_an_external_event(db):
+    """REGRESSION. This shipped as `channel=None`, and discord.py's sentinel is MISSING,
+    so None counts as SET and every call raised TypeError before reaching the API: zero
+    events ever, and the TypeError also broke out of /schedule's confirm callback so the
+    organizer saw a button that did nothing. The kwarg must be ABSENT, not None."""
+    seen = []
+
+    class Guild:
+        scheduled_events = ()
+
+        async def create_scheduled_event(self, **kw):
+            seen.append(kw)
+            if "channel" in kw:  # what the real library does, so the test fails the same way
+                raise TypeError("channel cannot be set when entity_type is external")
+
+    cog = r.Reading(SimpleNamespace(), db)
+    cps = schedule.plan(34, 3, **PLAN)
+    assert await cog._events(Guild(), "2026-03", cps, "#florilegium") == 3
+    assert len(seen) == 3
+    for kw in seen:
+        assert "channel" not in kw, "an EXTERNAL event must omit channel entirely"
+        assert kw["entity_type"] is discord.EntityType.external
+        assert kw["location"] == "#florilegium"
+
+
+async def test_a_failing_event_stops_the_batch_without_losing_the_checkpoints(db):
+    """The calendar is a nicety. A raise here must not escape, or it takes the confirm
+    callback with it and the organizer is never told their checkpoints were written."""
+
+    class Guild:
+        scheduled_events = ()
+
+        async def create_scheduled_event(self, **kw):
+            raise discord.HTTPException(
+                SimpleNamespace(status=403, reason="Forbidden"), "no create_events")
+
+    cog = r.Reading(SimpleNamespace(), db)
+    assert await cog._events(Guild(), "2026-03", schedule.plan(34, 3, **PLAN), "#x") == 0
 
 
 def test_illegal_auto_archive_duration_rejected():
