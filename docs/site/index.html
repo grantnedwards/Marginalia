@@ -1,0 +1,580 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Marginalia — a book club bot for one Discord channel</title>
+<link rel="stylesheet" href="discord.css">
+</head>
+<body>
+<div class="wrap">
+
+  <div class="hero">
+    <h1>Marginalia</h1>
+    <p>A book club that runs itself, in one Discord channel.</p>
+  </div>
+
+  <div class="tocs">
+    <a href="#join">Joining &amp; picking</a>
+    <a href="#schedule">Schedule &amp; reminders</a>
+    <a href="#quote">Quoting the book</a>
+    <a href="#admin">The admin view</a>
+  </div>
+
+  <div class="grid">
+    <div class="side">
+      <h3>Every month</h3>
+      <div class="row"><span class="h">1</span> Members nominate books</div>
+      <div class="row"><span class="h">2</span> One poll picks the winner</div>
+      <div class="row"><span class="h">3</span> Tap to opt in — for that month only</div>
+      <div class="row"><span class="h">4</span> Reminders before every discussion</div>
+      <div class="row"><span class="h">5</span> A thread per chapter</div>
+    </div>
+    <div class="side">
+      <h3>What makes it different</h3>
+      <div class="row">Times show in <b>your</b> timezone</div>
+      <div class="row">Quotes come from the real book</div>
+      <div class="row">It will not spoil you</div>
+      <div class="row">Membership expires on its own</div>
+      <div class="row">No leaderboards, ever</div>
+    </div>
+  </div>
+
+<section class="sec" id="join">
+  <h2>Joining, and picking the book</h2>
+
+  <div class="dc">
+    <div class="dc-head"><span class="hash">#</span>florilegium
+      <span class="topic">Pinned &mdash; one message per month</span></div> <div class="dc-body">
+      <div class="msg"> <div class="av m">M</div> <div class="mbody">
+          <div class="mhead"><span class="name">Marginalia</span> <span class="tag">APP</span><span class="ts">Sep 1 at 8:00 AM</span></div>
+          <div class="mtext"><span class="men">@Marginalia 2026-09</span> is open for 2026-09. Tap to opt in for the month.</div>
+          <div class="emb tb">
+            <div class="th">Piranesi</div>
+            <div class="et">Piranesi</div>
+            <div class="ed">by Susanna Clarke</div>
+            <div class="ef"><div><b>Cycle</b>2026-09</div><div><b>Joined so far</b>0</div></div>
+            <div class="foot">Tap Join this month to opt in. /leave any time.</div>
+          </div>
+          <div class="btns"><button class="btn">Join this month</button></div>
+        </div>
+      </div>
+      <div class="sys">Marginalia pinned a message to this channel.</div>
+    </div>
+  </div>
+  <p class="cap">The button survives restarts, so the pin stays the entry point all month.
+    The cover is lifted out of the EPUB, not fetched. The ping stays in the message text
+    above the card &mdash; an embed cannot ping.</p>
+
+  <div class="dc">
+    <div class="dc-head"><span class="hash">#</span>florilegium</div> <div class="dc-body">
+      <div class="slash">GE used <b>/join</b></div>
+      <div class="msg"> <div class="av m">M</div> <div class="mbody">
+          <div class="mhead"><span class="name">Marginalia</span> <span class="tag">APP</span><span class="ts">Today at 9:04 AM</span></div>
+          <div class="eph">
+            <div class="mtext">You&rsquo;re in for 2026-09.</div>
+            <div class="only">Only you can see this</div>
+          </div>
+        </div>
+      </div>
+      <div class="sys">Role <span class="men">@Marginalia 2026-09</span> added to GE</div>
+      <div class="slash">GE used <b>/roster</b></div>
+      <div class="msg"> <div class="av m">M</div> <div class="mbody">
+          <div class="mhead"><span class="name">Marginalia</span> <span class="tag">APP</span><span class="ts">Today at 9:05 AM</span></div>
+          <div class="mtext"><span class="men">@Marginalia 2026-09</span> &mdash; 5 reading this month.</div>
+          <div class="emb">
+            <div class="et">Reading in 2026-09</div>
+            <div class="ed">5 reading</div>
+            <div class="ef"><div><b>Members</b><span class="men">@ada</span>, <span class="men">@GE</span>, <span class="men">@wren</span>, <span class="men">@jun</span>, <span class="men">@moss</span></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <p class="cap">The roll call moved into a card; the one ping stayed in the text. Names in
+    an embed are deliberately non-pinging.</p>
+
+  <div class="grid">
+    <div>
+      <div class="side">
+        <h3>Nominate a book</h3>
+        <div class="row"><span class="h">Title</span> Piranesi</div>
+        <div class="row"><span class="h">Author</span> Susanna Clarke</div>
+        <div class="row"><span class="h">Why this one?</span> Short, strange, and everyone finishes it.</div>
+        <div class="row"><span class="h">Pages (optional)</span> 272</div>
+        <div class="btns"><button class="btn">Submit</button><button class="btn s">Cancel</button></div>
+      </div>
+      <p class="cap"><b>/nominate</b> opens this modal.</p>
+    </div>
+    <div>
+      <div class="dc">
+        <div class="dc-head"><span class="hash">#</span>florilegium</div> <div class="dc-body">
+          <div class="msg"> <div class="av m">M</div> <div class="mbody">
+              <div class="mhead"><span class="name">Marginalia</span> <span class="tag">APP</span><span class="ts">Today at 9:12 AM</span></div>
+              <div class="emb">
+                <div class="et">Piranesi</div>
+                <div class="ed">Short, strange, and everyone finishes it.</div>
+                <div class="ef"><div><b>Author</b>Susanna Clarke</div><div><b>Nominated by</b>GE</div></div>
+                <div class="foot">Nomination #12 &mdash; an organizer puts it on the /ballot.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <p class="cap">The pitch is the card&rsquo;s description.</p>
+    </div>
+  </div>
+
+  <div class="dc">
+    <div class="dc-head"><span class="hash">#</span>florilegium</div> <div class="dc-body">
+      <div class="msg"> <div class="av m">M</div> <div class="mbody">
+          <div class="mhead"><span class="name">Marginalia</span> <span class="tag">APP</span><span class="ts">Today at 9:30 AM</span></div>
+          <div class="mtext">Approval voting: tick every book you are willing to read. Closes <span class="stamp">in 3 days</span>. I cannot vote &mdash; bots never can.</div>
+          <div class="poll">
+            <div class="q">What are we reading in 2026-09?</div>
+            <div class="sub">Select multiple &middot; 2 days left</div>
+            <div class="opt"><div class="bar" style="width:78%"></div><span>&check; Piranesi - Susanna Clarke</span><span class="n">7</span></div>
+            <div class="opt"><div class="bar" style="width:67%"></div><span>&check; Pale Fire - Vladimir Nabokov</span><span class="n">6</span></div>
+            <div class="opt"><div class="bar" style="width:45%"></div><span>&check; Moby-Dick - Herman Melville</span><span class="n">4</span></div>
+            <div class="opt"><div class="bar" style="width:22%"></div><span>A Tale of Two Cities - Charles Dickens</span><span class="n">2</span></div>
+            <div class="tot">9 votes &middot; you picked 3</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <p class="note"><b>multiple=True.</b> One voter ticks several books, so the winner is the one the most people are willing to read &mdash; not the loudest faction&rsquo;s favourite.</p>
+
+  <div class="dc">
+    <div class="dc-head"><span class="hash">#</span>florilegium</div> <div class="dc-body">
+      <div class="slash">ada used <b>/ballot-result</b></div>
+      <div class="msg"> <div class="av m">M</div> <div class="mbody">
+          <div class="mhead"><span class="name">Marginalia</span> <span class="tag">APP</span><span class="ts">Sep 4 at 9:31 AM</span></div>
+          <div class="emb y">
+            <div class="et">Tied at 7 approvals</div>
+            <div class="ed">Your call &mdash; I will not coin-flip a month of reading.</div>
+            <div class="ef"><div><b>Approvals</b><strong>7</strong> Piranesi<br><strong>7</strong> Pale Fire<br><strong>4</strong> Moby-Dick<br><strong>2</strong> A Tale of Two Cities</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <p class="cap">Yellow border, no winner line, no footer offering <code>/cycle-open</code>
+    &mdash; a tie is presented as a tie.</p>
+
+  <div class="dc">
+    <div class="dc-head"><span class="hash">#</span>florilegium</div> <div class="dc-body">
+      <div class="slash">ada used <b>/cycle-close</b></div>
+      <div class="msg"> <div class="av m">M</div> <div class="mbody">
+          <div class="mhead"><span class="name">Marginalia</span> <span class="tag">APP</span><span class="ts">Sep 30 at 8:00 PM</span></div>
+          <div class="eph">
+            <div class="mtext">Closed 2026-09. Role stripped from 5; all 5 membership rows kept for the library.</div>
+            <div class="only">Only you can see this</div>
+          </div>
+        </div>
+      </div>
+      <div class="sys">Role <span class="men">@Marginalia 2026-09</span> removed from 5 members</div>
+    </div>
+  </div>
+  <p class="cap">The role goes; the history stays. Still a plain string, not a card:
+    <b>a one-line confirmation reads faster unwrapped</b>, and there is nothing here to
+    name as a field.</p>
+</section>
+
+<section class="sec" id="schedule">
+<h2>The schedule, and the reminders</h2>
+
+<!-- 1. /schedule: ephemeral preview, nothing written until Confirm -->
+<div class="dc">
+  <div class="dc-head"><span class="hash">#</span>2026-09<span class="topic">Piranesi &middot; Susanna Clarke &middot; 245 pages</span></div>
+  <div class="dc-body">
+    <div class="slash"><b>/schedule</b> total: 245 &nbsp; weeks: 8 &nbsp; weekday: 6 &nbsp; at: 19:00 &nbsp; by: pages</div>
+    <div class="msg"><div class="av m">M</div><div class="mbody">
+      <div class="mhead"><span class="name">Marginalia</span><span class="tag">APP</span><span class="ts">Today at 09:14</span></div>
+      <div class="eph"><div class="mtext"><b>Piranesi</b> - 8 checkpoints, 24 reminders, 8 events
+first: Pages 1-31 <span class="stamp">Sunday, 20 September 2026 19:00</span> (<span class="stamp">in 3 days</span>)
+last: Pages 216-245 <span class="stamp">Sunday, 8 November 2026 19:00</span> (<span class="stamp">in 2 months</span>)
+Nothing is written until you press the button.</div>
+        <div class="btns"><button class="btn g">Create schedule</button></div>
+        <div class="only">Only you can see this</div></div>
+    </div></div>
+    <div class="msg"><div class="av m">M</div><div class="mbody">
+      <div class="mhead"><span class="name">Marginalia</span><span class="tag">APP</span><span class="ts">Today at 09:14</span></div>
+      <div class="eph"><div class="mtext">Scheduled 8 checkpoints, 24 new reminders, 8 events. Reminders already sent were left alone.</div>
+        <div class="only">Only you can see this</div></div>
+    </div></div>
+  </div></div>
+
+<!-- 2. the reminders before a chapter discussion -->
+<div class="dc" style="margin-top:28px">
+  <div class="dc-head"><span class="hash">#</span>2026-09 Pages 32-62<span class="topic">thread &middot; public &middot; archives after 7 days</span></div>
+  <div class="dc-body">
+    <div class="msg"><div class="av m">M</div><div class="mbody">
+      <div class="mhead"><span class="name">Marginalia</span><span class="tag">APP</span><span class="ts">Saturday at 19:00</span></div>
+      <div class="mtext"><span class="men">@Marginalia 2026-09</span> <b>Pages 32-62</b> is due tomorrow -- <span class="stamp">Sunday, 27 September 2026 19:00</span> (<span class="stamp">in 1 day</span>)</div>
+    </div></div>
+    <div class="msg"><div class="av m">M</div><div class="mbody">
+      <div class="mhead"><span class="name">Marginalia</span><span class="tag">APP</span><span class="ts">Sunday at 18:00</span></div>
+      <div class="mtext"><span class="men">@Marginalia 2026-09</span> <b>Pages 32-62</b> is due in an hour -- <span class="stamp">Sunday, 27 September 2026 19:00</span> (<span class="stamp">in 1 hour</span>)</div>
+    </div></div>
+  </div></div>
+
+<!-- the payoff: the same message, two readers -->
+<div class="grid" style="margin-top:28px">
+  <div class="dc">
+    <div class="dc-head"><span class="hash">#</span>2026-09 Pages 32-62<span class="topic">read in London</span></div>
+    <div class="dc-body"><div class="msg"><div class="av m">M</div><div class="mbody">
+      <div class="mhead"><span class="name">Marginalia</span><span class="tag">APP</span><span class="ts">19:00</span></div>
+      <div class="mtext"><span class="men">@Marginalia 2026-09</span> <b>Pages 32-62</b> is due tomorrow -- <span class="stamp">Sunday, 27 September 2026 19:00</span> (<span class="stamp">in 1 day</span>)</div>
+    </div></div></div>
+  </div>
+  <div class="dc">
+    <div class="dc-head"><span class="hash">#</span>2026-09 Pages 32-62<span class="topic">read in Seattle</span></div>
+    <div class="dc-body"><div class="msg"><div class="av m">M</div><div class="mbody">
+      <div class="mhead"><span class="name">Marginalia</span><span class="tag">APP</span><span class="ts">11:00</span></div>
+      <div class="mtext"><span class="men">@Marginalia 2026-09</span> <b>Pages 32-62</b> is due tomorrow -- <span class="stamp">Sunday, 27 September 2026 11:00</span> (<span class="stamp">in 1 day</span>)</div>
+    </div></div></div>
+  </div></div>
+<p class="cap">One send, not two: the bot ships <code>&lt;t:...:F&gt;</code> markup and Discord renders each reader's own timezone.</p>
+
+<!-- 3. the thread each checkpoint opens -->
+<div class="grid" style="margin-top:28px">
+  <div class="dc">
+    <div class="dc-head"><span class="hash">#</span>2026-09</div>
+    <div class="dc-body">
+      <div class="msg"><div class="av m">M</div><div class="mbody">
+        <div class="mhead"><span class="name">Marginalia</span><span class="tag">APP</span><span class="ts">Sunday at 19:00</span></div>
+        <div class="mtext"><span class="men">@Marginalia 2026-09</span> <span class="chan">#2026-09 Pages 32-62</span> <b>Pages 32-62</b> is open -- <span class="stamp">Sunday, 27 September 2026 19:00</span> (<span class="stamp">just now</span>)</div>
+      </div></div>
+      <div class="thr">&#8627; <span class="tn">2026-09 Pages 32-62</span> &middot; 14 messages</div>
+    </div>
+  </div>
+  <div class="side">
+    <h3>Threads</h3>
+    <div class="row cur"><span class="h">#</span>2026-09 Pages 32-62</div>
+    <div class="row"><span class="h">#</span>2026-09 Pages 1-31</div>
+    <div class="row"><span class="h">#</span>Wrap-up discussion</div>
+  </div></div>
+<p class="cap">Spoilers stay put: each thread is pinned to its own page ceiling.</p>
+
+<!-- 4. /next and /pace -->
+<div class="grid" style="margin-top:28px">
+  <div class="dc"><div class="dc-body">
+    <div class="slash"><b>/next</b></div>
+    <div class="msg"><div class="av m">M</div><div class="mbody">
+      <div class="mhead"><span class="name">Marginalia</span><span class="tag">APP</span></div>
+      <div class="eph">
+        <div class="emb">
+          <div class="et">Pages 63-93</div>
+          <div class="ef col">
+            <div><b>Due</b><span class="stamp">Sunday, 4 October 2026 19:00</span> (<span class="stamp">in 6 days</span>)</div>
+            <div><b>Read to</b>pages 63-93</div>
+          </div>
+          <div class="foot">2026-09</div>
+        </div>
+        <div class="btns"><button class="btn s">Open the thread</button></div>
+        <div class="only">Only you can see this</div></div>
+    </div></div>
+  </div></div>
+  <div class="dc"><div class="dc-body">
+    <div class="slash"><span class="name">GE</span> used <b>/pace</b></div>
+    <div class="msg"><div class="av m">M</div><div class="mbody">
+      <div class="mhead"><span class="name">Marginalia</span><span class="tag">APP</span></div>
+      <div class="eph">
+        <div class="emb">
+          <div class="et">Your pace</div>
+          <div class="ed pbar">&#9648;&#9648;&#9648;&#9648;&#9649;&#9649;&#9649;&#9649; 50%</div>
+          <div class="ef"><div><b>Versus the plan</b>9 pages ahead</div></div>
+          <div class="foot">Only you can see this.</div>
+        </div>
+        <div class="only">Only you can see this</div></div>
+    </div></div>
+  </div></div>
+</div>
+<p class="cap">No cover on this card and no gap where one would be: <code>library.cover()</code>
+  returns <code>None</code> for most books, so the embed carries no thumbnail at all.
+  &ldquo;Open the thread&rdquo; is a link button &mdash; no handler, so a restart cannot break it.
+  The bar is text, so it costs no image and no upload.</p>
+
+<!-- 5. /meeting, with its own two reminders -->
+<div class="dc" style="margin-top:28px">
+  <div class="dc-head"><span class="hash">#</span>2026-09</div>
+  <div class="dc-body">
+    <div class="slash"><b>/meeting</b> on: 2026-11-15 &nbsp; at: 19:00</div>
+    <div class="msg"><div class="av m">M</div><div class="mbody">
+      <div class="mhead"><span class="name">Marginalia</span><span class="tag">APP</span><span class="ts">Today at 09:20</span></div>
+      <div class="eph"><div class="mtext">Meeting <span class="stamp">Sunday, 15 November 2026 19:00</span> (<span class="stamp">in 2 months</span>), 2 new reminders (24h and 1h before).</div>
+        <div class="only">Only you can see this</div></div>
+    </div></div>
+    <div class="sys">&mdash; two months later &mdash;</div>
+    <div class="msg"><div class="av m">M</div><div class="mbody">
+      <div class="mhead"><span class="name">Marginalia</span><span class="tag">APP</span><span class="ts">14/11/2026 19:00</span></div>
+      <div class="mtext"><span class="men">@Marginalia 2026-09</span> <b>Wrap-up discussion</b> meeting is tomorrow -- <span class="stamp">Sunday, 15 November 2026 19:00</span> (<span class="stamp">in 1 day</span>)</div>
+    </div></div>
+    <div class="msg"><div class="av m">M</div><div class="mbody">
+      <div class="mhead"><span class="name">Marginalia</span><span class="tag">APP</span><span class="ts">15/11/2026 18:00</span></div>
+      <div class="mtext"><span class="men">@Marginalia 2026-09</span> <b>Wrap-up discussion</b> meeting starts in an hour -- <span class="stamp">Sunday, 15 November 2026 19:00</span> (<span class="stamp">in 1 hour</span>)</div>
+    </div></div>
+  </div></div>
+
+<!-- 6. the Events tab -->
+<div class="side" style="margin-top:28px;max-width:420px">
+  <h3>Events &middot; 8 scheduled</h3>
+  <div class="row"><span class="h">20 Sep 19:00</span> 2026-09 Pages 1-31</div>
+  <div class="row cur"><span class="h">27 Sep 19:00</span> 2026-09 Pages 32-62</div>
+  <div class="row"><span class="h">04 Oct 19:00</span> 2026-09 Pages 63-93</div>
+  <div class="row"><span class="h">&hellip;</span> 5 more</div>
+</div>
+<p class="cap">Each checkpoint is also a native scheduled event, so it shows up in the server calendar.</p>
+<p class="note"><b>Late is not wrong for everything.</b> <code>unlock</code> has infinite grace, so a thread still opens after an outage; <code>T-24h</code> and <code>T-1h</code> expire (6h / 45m) rather than lie.</p>
+</section>
+
+<section class="sec" id="quote">
+  <h2>Quoting the book, without spoiling it</h2>
+
+  <div class="dc">
+    <div class="dc-head"><span class="hash">#</span>florilegium
+      <span class="topic">read through ch. 12</span></div> <div class="dc-body">
+      <div class="slash">GE used <b>/quote</b> &nbsp;book: <i>A Tale of Two Cities</i> &nbsp;query: best of times</div>
+      <div class="msg"> <div class="av m">M</div> <div class="mbody">
+          <div class="mhead"><span class="name">Marginalia</span> <span class="tag">APP</span><span class="ts">Today at 9:12 AM</span></div>
+          <div class="eph">
+            <div class="emb tb">
+              <div class="th">A Tale of Two Cities</div>
+              <div class="ed">A Tale of Two Cities by Charles Dickens - ch. 1 "The Period", para 1 (~0% through)<br>
+<span class="spoiler on">It was the best of times, it was the worst of times, it was the age of wisdom, it was the age of foolishness&hellip;</span></div>
+              <div class="foot">A Tale of Two Cities by Charles Dickens</div>
+            </div>
+            <div class="only">Only you can see this</div>
+  </div></div></div></div></div>
+  <p class="cap">The passage is an embed now, because a bar renders in a <b>description</b> and
+    nowhere else &mdash; not a title, not a footer. The citation still sits <b>outside</b> and
+    above its own bar, so you decide before you reveal. Want citations only? <code>/find</code>
+    returns the locators and spends none of your quote allowance.</p>
+
+  <div class="grid">
+    <div>
+      <div class="dc">
+        <div class="dc-head"><span class="hash">#</span>florilegium
+          <span class="topic">finished</span></div> <div class="dc-body">
+          <div class="slash">GE used <b>/quote</b> &nbsp;query: far better thing</div>
+          <div class="msg"> <div class="av m">M</div> <div class="mbody">
+              <div class="mhead"><span class="name">Marginalia</span> <span class="tag">APP</span><span class="ts">9:14 AM</span></div>
+              <div class="eph">
+                <div class="emb">
+                  <div class="ed">A Tale of Two Cities by Charles Dickens - ch. 45 "The Footsteps Die Out For Ever", para 62 (~98% through)<br>
+<span class="spoiler">It is a far, far better thing that I do, than I have ever done; it is a far, far better rest that I go to than I have ever known.</span></div>
+                  <div class="foot">A Tale of Two Cities by Charles Dickens</div>
+                </div>
+                <div class="only">Only you can see this</div>
+      </div></div></div></div></div>
+      <p class="cap">Allowed. Bar still closed until you tap it.</p>
+    </div>
+    <div>
+      <div class="dc">
+        <div class="dc-head"><span class="hash">#</span>florilegium
+          <span class="topic">read through ch. 12</span></div> <div class="dc-body">
+          <div class="slash">wren used <b>/quote</b></div>
+          <div class="msg"> <div class="av m">M</div> <div class="mbody">
+              <div class="mhead"><span class="name">Marginalia</span> <span class="tag">APP</span><span class="ts">9:14 AM</span></div>
+              <div class="eph">
+                <div class="emb">
+                  <div class="ed">Nothing I can show you matches that.</div>
+                </div>
+                <div class="only">Only you can see this</div>
+      </div></div></div></div></div>
+      <p class="cap">Same query, past the gate. Same card shape, and deliberately
+        <b>nothing else in it</b>: no title, no footer, no thumbnail, no match count, no echo
+        of the question &mdash; the refusal itself would be the spoiler.</p>
+  </div></div>
+
+  <p class="note"><b>Quote limits.</b> 75 words per quote, at most 3 passages per response, and a
+  rolling cap of 2% of the book per reader per 30 days &mdash; so nobody can walk the bot
+  through the whole novel.</p>
+
+  <div class="grid">
+    <div>
+      <div class="dc">
+        <div class="dc-head"><span class="hash">#</span>florilegium</div> <div class="dc-body">
+          <div class="slash">GE used <b>/quote</b></div>
+          <div class="msg"> <div class="av m">M</div> <div class="mbody">
+              <div class="mhead"><span class="name">Marginalia</span> <span class="tag">APP</span><span class="ts">4:31 PM</span></div>
+              <div class="eph">
+                <div class="emb">
+                  <div class="ed">You have reached this book&rsquo;s quote allowance for the last 30 days.<br>Citations without the text cost you nothing &mdash; <code>/find</code> is often what you actually wanted:</div>
+                </div>
+                <div class="btns"><button class="btn s">Locator only</button></div>
+                <div class="only">Only you can see this</div>
+      </div></div></div></div></div>
+      <p class="cap">The button holds the locator strings and nothing else &mdash; no database,
+        no ids &mdash; so a tap cannot re-enter the charging path. The refusal itself charged nothing.</p>
+    </div>
+    <div>
+      <div class="dc">
+        <div class="dc-head"><span class="hash">#</span>florilegium</div> <div class="dc-body">
+          <div class="slash">GE used <b>/find</b> &nbsp;query: far better thing</div>
+          <div class="msg"> <div class="av m">M</div> <div class="mbody">
+              <div class="mhead"><span class="name">Marginalia</span> <span class="tag">APP</span><span class="ts">4:32 PM</span></div>
+              <div class="eph">
+                <div class="emb tb">
+                  <div class="th">A Tale of Two Cities</div>
+                  <div class="et">Citations</div>
+                  <div class="ed">- A Tale of Two Cities by Charles Dickens - ch. 45 "The Footsteps Die Out For Ever", para 62 (~98% through)<br>- A Tale of Two Cities by Charles Dickens - ch. 45 "The Footsteps Die Out For Ever", para 63 (~98% through)</div>
+                  <div class="foot">A Tale of Two Cities by Charles Dickens</div>
+                </div>
+                <div class="only">Only you can see this</div>
+      </div></div></div></div></div>
+      <p class="cap">Citations, no book text. The title is the constant word
+        &ldquo;Citations&rdquo; &mdash; a title that varied with the query would leak it.</p>
+  </div></div>
+
+  <div class="dc">
+    <div class="dc-head"><span class="hash">#</span>florilegium</div> <div class="dc-body">
+      <div class="slash">GE used <b>/passage</b></div>
+      <div class="msg"> <div class="av m">M</div> <div class="mbody">
+          <div class="mhead"><span class="name">Marginalia</span> <span class="tag">APP</span><span class="ts">Today at 9:20 AM</span></div>
+          <div class="eph">
+            <div class="emb">
+              <div class="ed">A Tale of Two Cities by Charles Dickens - ch. 5 "The Wine-shop", para 4 (~9% through)<br>
+<span class="spoiler on">All the people within reach had suspended their business, or their idleness, to run to the spot and drink the wine.</span></div>
+              <div class="foot">A Tale of Two Cities by Charles Dickens</div>
+            </div>
+            <div class="only">Only you can see this</div>
+      </div></div></div>
+      <div class="sys">Nobody else in the channel sees this message, and no push notification is sent.</div>
+  </div></div>
+  <p class="cap">Ephemeral is the real defence, not politeness: a push notification would render the
+  spoiler bar as <b>plain text</b> on somebody&rsquo;s lock screen.</p>
+
+  <div class="dc">
+    <div class="dc-head"><span class="hash">#</span>florilegium
+      <span class="topic">club is on ch. 12</span></div> <div class="dc-body">
+      <div class="thr"><span class="tn">ch. 7 &mdash; The Jackal</span> &middot; catching up</div>
+      <div class="slash">jun used <b>/quote</b> &nbsp;query: far better thing</div>
+      <div class="msg"> <div class="av m">M</div> <div class="mbody">
+          <div class="mhead"><span class="name">Marginalia</span> <span class="tag">APP</span><span class="ts">Today at 4:02 PM</span></div>
+          <div class="eph">
+            <div class="emb">
+              <div class="ed">Nothing I can show you matches that.</div>
+            </div>
+            <div class="only">Only you can see this</div>
+  </div></div></div></div></div>
+  <p class="cap">Inside a per-chapter thread the ceiling is the thread&rsquo;s chapter, even once the
+  club has moved on. Catching up never leaks forward.</p>
+
+  <div class="dc">
+    <div class="dc-head"><span class="hash">#</span>florilegium</div> <div class="dc-body">
+      <div class="slash">GE used <b>/progress set</b> &nbsp;number: 9</div>
+      <div class="msg"> <div class="av m">M</div> <div class="mbody">
+          <div class="mhead"><span class="name">Marginalia</span> <span class="tag">APP</span><span class="ts">Today at 9:30 AM</span></div>
+          <div class="eph">
+            <div class="mtext">Noted: chapter 9.</div>
+            <div class="only">Only you can see this</div>
+      </div></div></div>
+      <div class="slash">GE used <b>/progress show</b></div>
+      <div class="msg"> <div class="av m">M</div> <div class="mbody">
+          <div class="mhead"><span class="name">Marginalia</span> <span class="tag">APP</span><span class="ts">Today at 9:31 AM</span></div>
+          <div class="eph">
+            <div class="emb">
+              <div class="et">What you have reported</div>
+              <div class="ed">chapter 9 - <span class="stamp">Friday, 4 September 2026 09:30</span> (<span class="stamp">2 minutes ago</span>)<br>chapter 6 - <span class="stamp">Saturday, 29 August 2026 20:11</span> (<span class="stamp">6 days ago</span>)<br>chapter 2 - <span class="stamp">Monday, 24 August 2026 07:45</span> (<span class="stamp">11 days ago</span>)</div>
+              <div class="foot">page 1/3</div>
+            </div>
+            <div class="btns"><button class="btn s" disabled>&lt; prev</button><button class="btn s">next &gt;</button></div>
+            <div class="only">Only you can see this</div>
+  </div></div></div></div></div>
+  <p class="cap">Self-reported and private. Reporting <i>behind</i> the club narrows your own gate;
+    it never widens it. <b>&ldquo;Noted: chapter 9.&rdquo; stays a plain string</b> &mdash; a
+    one-line confirmation reads faster unwrapped, and that restraint is a decision, not an
+    omission. Only the paged list earned a card, and only a real second page earns buttons.</p>
+
+</section>
+
+<section class="sec" id="admin">
+  <h2>The admin view</h2>
+
+  <div class="grid">
+    <div>
+      <div class="dc">
+        <div class="dc-head"><span class="hash">#</span>organizers</div> <div class="dc-body">
+          <div class="slash">ada used <b>/status</b></div>
+          <div class="msg"> <div class="av m">M</div> <div class="mbody">
+              <div class="mhead"><span class="name">Marginalia</span> <span class="tag">APP</span><span class="ts">Today at 10:02 AM</span></div>
+              <div class="eph">
+                <div class="emb g">
+                  <div class="et">Marginalia status</div>
+                  <div class="ef col">
+                    <div><b>Heartbeat</b>4s ago, <span class="stamp">Friday, 4 September 2026 10:02</span> (<span class="stamp">4 seconds ago</span>)</div>
+                    <div><b>Cohort</b><strong>Piranesi</strong> &mdash; 2026-09, 5 reading, <code>open</code></div>
+                    <div><b>Schedule</b>3/8 checkpoints fired<br>next <span class="stamp">Sunday, 4 October 2026 19:00</span> (<span class="stamp">in 6 days</span>)</div>
+                    <div><b>Reminders</b>pending <strong>15</strong> | sent <strong>9</strong> | skipped <strong>0</strong> | failed <strong>0</strong></div>
+                    <div><b>Book text</b>45 chapters, 1102 paragraphs searchable</div>
+                  </div>
+                </div>
+                <div class="only">Only you can see this</div>
+      </div></div></div></div></div>
+      <p class="cap">Green.</p>
+    </div>
+    <div>
+      <div class="dc">
+        <div class="dc-head"><span class="hash">#</span>organizers</div> <div class="dc-body">
+          <div class="slash">ada used <b>/status</b></div>
+          <div class="msg"> <div class="av m">M</div> <div class="mbody">
+              <div class="mhead"><span class="name">Marginalia</span> <span class="tag">APP</span><span class="ts">Today at 10:09 AM</span></div>
+              <div class="eph">
+                <div class="emb r">
+                  <div class="et">Marginalia status</div>
+                  <div class="ef col">
+                    <div><b>Heartbeat</b>412s ago, <span class="stamp">Friday, 4 September 2026 10:02</span> (<span class="stamp">7 minutes ago</span>) &mdash; STALE (&gt; 180s)</div>
+                    <div><b>Cohort</b><strong>Piranesi</strong> &mdash; 2026-09, 5 reading, <code>open</code></div>
+                    <div><b>Schedule</b>3/8 checkpoints fired<br>next <span class="stamp">Sunday, 4 October 2026 19:00</span> (<span class="stamp">in 6 days</span>)</div>
+                    <div><b>Reminders</b>pending <strong>15</strong> | sent <strong>8</strong> | skipped <strong>0</strong> | failed <strong>1</strong></div>
+                    <div><b>Book text</b>45 chapters, 1102 paragraphs searchable</div>
+                  </div>
+                </div>
+                <div class="only">Only you can see this</div>
+      </div></div></div></div></div>
+      <p class="cap">Red. Worst state wins: any failed reminder, or a beat over 180s, or no
+        beat at all. Yellow is a skipped reminder and nothing worse.</p>
+  </div></div>
+  <p class="note"><b>The colour is the whole command.</b> 180s sits deliberately below
+    <code>watchdog.sh</code>&rsquo;s 600s, so an organizer sees the failure before the
+    container is restarted out from under it. The heartbeat is reported even with no cycle
+    open &mdash; process liveness is not scheduler liveness.</p>
+
+  <div class="dc">
+    <div class="dc-head"><span class="hash">#</span>organizers</div> <div class="dc-body">
+      <div class="slash">GE used <b>/ingest</b> &nbsp;epub: tale-of-two-cities.epub &nbsp;i_own_a_drm_free_copy: True</div>
+      <div class="msg"> <div class="av m">M</div> <div class="mbody">
+          <div class="mhead"><span class="name">Marginalia</span> <span class="tag">APP</span><span class="ts">Today at 8:58 AM</span></div>
+          <div class="eph">
+            <div class="mtext">Ingested book #1. The uploaded file has been deleted &mdash; only the parsed text is kept.</div>
+            <div class="only">Only you can see this</div>
+  </div></div></div></div></div>
+  <p class="cap">Once per book, by an organizer &mdash; and where the cover comes from.
+    <code>/purge_book</code> takes it all back out again. The other organizer surface,
+    <b>/schedule</b>&rsquo;s nothing-written-until-you-press-it preview, is above.</p>
+</section>
+
+  <div class="sec">
+    <h2>Setup, once</h2>
+    <div class="side">
+      <div class="row"><span class="h">1</span> Invite the bot to your server</div>
+      <div class="row"><span class="h">2</span> Turn on the Server Members intent</div>
+      <div class="row"><span class="h">3</span> Drag its role above the cohort roles</div>
+      <div class="row"><span class="h">4</span> <code>/ingest</code> a DRM-free EPUB you own <span class="h">— optional</span></div>
+    </div>
+    <p class="cap">Step 3 is the one people miss. Without it every role assignment fails,
+      and Discord's error never says why.</p>
+  </div>
+
+</div>
+
+<script>
+/* Spoiler bars behave like Discord's: click to reveal. */
+document.addEventListener("click", function (e) {
+  if (e.target.classList.contains("spoiler")) e.target.classList.toggle("on");
+});
+</script>
+</body>
+</html>

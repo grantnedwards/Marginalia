@@ -1,0 +1,53 @@
+# Without this the project name is the DIRECTORY name -- the stack shows up as
+# "deploy" in unRAID's Compose Manager, and the network as deploy_default.
+name: marginalia
+
+services:
+  marginalia:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+    image: marginalia:latest
+    container_name: marginalia          # the watchdog restarts this name
+    restart: unless-stopped
+
+    # SIGINT, not docker's default SIGTERM. MEASURED, not preference:
+    # `docker stop` signals PID 1, and PID 1 here is python. The kernel DISCARDS
+    # a signal sent to a PID-namespace init that has no handler for it, and
+    # CPython installs a handler for SIGINT and nothing else -- /proc/1/status
+    # reads SigCgt: 0000000000000002, bit 1 only. So with SIGTERM the bot never
+    # notices: `docker stop` waited the full 9.9s grace and then SIGKILLed it,
+    # exit 137, _run's `finally` never reached, db.close() never called, WAL left
+    # mid-write on EVERY stop and every `compose down`/upgrade.
+    # With SIGINT it is 74ms, exit 0, and the log shows "db closed" then
+    # "interrupted" -- the KeyboardInterrupt path __main__.py already documents.
+    # Not `init: true`: tini would make python a non-init child so SIGTERM's
+    # default action applies, but the default action is die-immediately, which is
+    # still exit 143 with no db.close(). Only SIGINT actually unwinds.
+    stop_signal: SIGINT
+
+    # DISCORD_TOKEN, GUILD_ID, BOOK_CLUB_CHANNEL_ID live here. chmod 600 it.
+    env_file: ./.env
+
+    environment:
+      TZ: America/Chicago
+      MARGINALIA_DB: /data/marginalia.db
+
+    # THE DATABASE. /mnt/cache/... is a DIRECT disk path. Do NOT change this to
+    # /mnt/user/... -- that goes through unRAID's shfs FUSE layer, which does not
+    # give SQLite WAL the byte-range locking semantics it needs (and WAL keeps
+    # -wal/-shm sidecars in this same directory), and it drags the parity array's
+    # spinning disks awake for every small write. Both are how Plex/Sonarr/Radarr
+    # users corrupt their databases. See README.
+    #
+    # The `/data` subdirectory is the REPO CHECKOUT's own `data/` (already in
+    # .gitignore, and the same layout .env.example uses for a laptop run). The
+    # repo lives at /mnt/cache/appdata/marginalia, so mounting the repo ROOT here
+    # would hand the container write access to the entire source tree.
+    volumes:
+      - /mnt/cache/appdata/marginalia/data:/data
+
+    # No `ports:`. Deliberately. The Discord gateway connection is OUTBOUND --
+    # a websocket the bot opens to Discord. There is no inbound listener, so
+    # there is nothing to publish. Adding a port here does nothing but widen
+    # your attack surface. Do not add one.

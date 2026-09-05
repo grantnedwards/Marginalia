@@ -1,0 +1,20 @@
+# RUNTIME ONLY -- this is what the container installs.
+# Dev tooling lives in requirements-dev.txt so ~30MB of pytest/ruff does not
+# ship to production. Verified 2026-09-04: every pin below resolves to a
+# prebuilt wheel on BOTH linux aarch64 and linux x86_64 (unRAID), so nothing
+# compiles on the target. audioop-lts is a HARD requirement of discord.py on
+# Python 3.13+ -- `import discord` itself fails without it. Do not prune it.
+aiohappyeyeballs==2.7.1
+aiohttp==3.14.3
+aiosignal==1.4.0
+aiosqlite==0.22.1
+attrs==26.1.0
+audioop-lts==0.2.2
+discord.py==2.7.1
+frozenlist==1.8.0
+idna==3.19
+lxml==6.1.3
+multidict==6.7.1
+propcache==0.5.2
+python-dotenv==1.2.3
+yarl==1.24.5

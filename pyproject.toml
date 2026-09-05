@@ -1,0 +1,17 @@
+[project]
+name = "marginalia"
+version = "0.1.0"
+requires-python = ">=3.13"
+# Four deps, all permissive: discord.py MIT, aiosqlite MIT, lxml BSD-3,
+# python-dotenv BSD-3. audioop-lts is a hard discord.py requirement on 3.13+.
+dependencies = ["discord.py==2.7.1", "aiosqlite", "lxml", "python-dotenv"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+
+[tool.ruff]
+line-length = 100
+target-version = "py313"
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "ASYNC"]
