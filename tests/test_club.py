@@ -9,7 +9,7 @@ import discord
 import pytest
 
 import marginalia.bot
-from marginalia import library, schedule
+from marginalia import cycle, library, schedule
 from marginalia.cogs import _views as views
 from marginalia.cogs import club, reading
 from marginalia.db import Database
@@ -29,14 +29,14 @@ async def db(tmp_path):
 
 
 async def nom(d, title, month="2026-09"):
-    return await club.add_nomination(d, G, month, title, "An Author", 300, U1)
+    return await cycle.add_nomination(d, G, month, title, "An Author", 300, U1)
 
 
 async def test_close_keeps_member_rows_and_strips_role(db):
-    cid = await club.open_cycle(db, G, 7, await nom(db, "Ulysses"), cycle_month="2026-09")
-    await club.join_cohort(db, cid, U1)
-    await club.join_cohort(db, cid, U2)
-    assert await club.close_cycle(db, cid) == [U1, U2]
+    cid = await cycle.open_cycle(db, G, 7, await nom(db, "Ulysses"), cycle_month="2026-09")
+    await cycle.join_cohort(db, cid, U1)
+    await cycle.join_cohort(db, cid, U2)
+    assert await cycle.close_cycle(db, cid) == [U1, U2]
     rows = await db.all("SELECT user_id, role_granted FROM cohort_members WHERE cohort_id=?", cid)
     assert [r["user_id"] for r in rows] == [U1, U2]  # history survives the role
     assert [r["role_granted"] for r in rows] == [0, 0]  # membership intent stripped
@@ -44,33 +44,33 @@ async def test_close_keeps_member_rows_and_strips_role(db):
 
 
 async def test_join_is_idempotent_and_rejoin_works(db):
-    cid = await club.open_cycle(db, G, 7, await nom(db, "Ulysses"), cycle_month="2026-09")
-    assert await club.join_cohort(db, cid, U1) is True
-    assert await club.join_cohort(db, cid, U1) is False
-    assert await club.roster_ids(db, cid) == [U1]
-    await club.leave_cohort(db, cid, U1)
-    assert await club.roster_ids(db, cid) == []
-    assert await club.join_cohort(db, cid, U1) is True
-    assert await club.roster_ids(db, cid) == [U1]
+    cid = await cycle.open_cycle(db, G, 7, await nom(db, "Ulysses"), cycle_month="2026-09")
+    assert await cycle.join_cohort(db, cid, U1) is True
+    assert await cycle.join_cohort(db, cid, U1) is False
+    assert await cycle.roster_ids(db, cid) == [U1]
+    await cycle.leave_cohort(db, cid, U1)
+    assert await cycle.roster_ids(db, cid) == []
+    assert await cycle.join_cohort(db, cid, U1) is True
+    assert await cycle.roster_ids(db, cid) == [U1]
 
 
 async def test_shortlist_excludes_a_book_from_an_ended_cohort(db):
     prev = await nom(db, "Dune", month="2026-08")
-    await club.close_cycle(db, await club.open_cycle(db, G, 7, prev, cycle_month="2026-08"))
+    await cycle.close_cycle(db, await cycle.open_cycle(db, G, 7, prev, cycle_month="2026-08"))
     keep = await nom(db, "Ulysses")
     await nom(db, "Dune")  # same book, new month, still 'proposed'
-    assert [r["id"] for r in await club.shortlist(db, G, "2026-09")] == [keep]
+    assert [r["id"] for r in await cycle.shortlist(db, G, "2026-09")] == [keep]
 
 
 async def test_cycle_opens_on_the_ingested_book_end_to_end(db, tmp_path):
     """The whole ebook half, in one line of assertions: ingest, open the cycle ON
     that book, plan in the DEFAULT pages mode, and the ceiling must not be 0."""
     bid = await library.ingest(db, str(mkepub(tmp_path)))  # 2 chapters, ~65% mark in ch. 2
-    cid = await club.open_cycle(db, G, CH, await nom(db, "T"), cycle_month="2026-09",
+    cid = await cycle.open_cycle(db, G, CH, await nom(db, "T"), cycle_month="2026-09",
                                 book_id=bid)
     assert (await db.one("SELECT COUNT(*) FROM books"))[0] == 1  # ONE row, not two
     assert (await db.one("SELECT book_id FROM cohorts WHERE id=?", cid))["book_id"] == bid
-    await club.join_cohort(db, cid, U1)
+    await cycle.join_cohort(db, cid, U1)
     chapters = (await db.one("SELECT chapter_count FROM books WHERE id=?", bid))[0]
     assert chapters == 2  # populated by ingest; 0 is what made every ceiling 0
     cps = schedule.plan(20, 2, 6, time(19, 0), "UTC", "pages", start=date(2026, 1, 4))
@@ -80,31 +80,65 @@ async def test_cycle_opens_on_the_ingested_book_end_to_end(db, tmp_path):
     assert [h.text for h in await library.search(db, bid, "whale", ceil)] == ["the white whale"]
 
 
+async def test_next_cycle_month_skips_months_that_already_have_a_cohort(db):
+    this = cycle.this_month()
+    assert await cycle.next_cycle_month(db, G) == this  # nothing yet: this month
+    await cycle.open_cycle(db, G, CH, await nom(db, "A", this), cycle_month=this)
+    following = cycle.month_after(this)
+    assert await cycle.next_cycle_month(db, G) == following  # reading now -> pick for next
+    assert cycle.month_after("2026-12") == "2027-01"
+    await db.run("UPDATE cohorts SET status='closed', closed_at=unixepoch()")
+    assert await cycle.next_cycle_month(db, G) == following  # closed early: still next
+
+
+async def test_open_cycle_validates_before_anything_is_created(db):
+    """check_open is the pre-flight /cycle-open runs before create_role."""
+    for bad in ((None, None), (999, None), (None, 999)):
+        with pytest.raises(ValueError):
+            await cycle.check_open(db, *bad)
+    assert (await db.one("SELECT COUNT(*) FROM cohorts"))[0] == 0
+
+
+async def test_cycle_opens_on_a_bare_ingested_book(db, tmp_path):
+    bid = await library.ingest(db, str(mkepub(tmp_path)))
+    cid = await cycle.open_cycle(db, G, CH, None, cycle_month="2026-09", book_id=bid)
+    assert (await db.one("SELECT book_id FROM cohorts WHERE id=?", cid))["book_id"] == bid
+    assert (await db.one("SELECT COUNT(*) FROM nominations"))[0] == 0
+
+
+async def test_latest_ballot_is_the_newest_poll_message(db):
+    assert await cycle.latest_ballot(db, G) is None
+    for title, mid in (("A", 100), ("B", 300), ("C", 200)):
+        await db.run("UPDATE nominations SET poll_message_id=? WHERE id=?", mid,
+                     await nom(db, title))
+    assert await cycle.latest_ballot(db, G) == 300
+
+
 async def test_cycle_without_an_epub_still_opens(db):
     """Plenty of clubs never upload a file: everything but quoting must work."""
-    cid = await club.open_cycle(db, G, CH, await nom(db, "No File"), cycle_month="2026-10")
-    assert await club.join_cohort(db, cid, U1) is True  # roster, role, reminders all fine
+    cid = await cycle.open_cycle(db, G, CH, await nom(db, "No File"), cycle_month="2026-10")
+    assert await cycle.join_cohort(db, cid, U1) is True  # roster, role, reminders all fine
     bid = (await db.one("SELECT book_id FROM cohorts WHERE id=?", cid))["book_id"]
     assert await library.ceiling(db, G, CH, U1, bid) == library.REFUSED  # no text to quote
     with pytest.raises(ValueError):  # and a not-yet-ingested id is refused, not attached
-        await club.open_cycle(db, G, CH, await nom(db, "Other"), cycle_month="2026-11",
+        await cycle.open_cycle(db, G, CH, await nom(db, "Other"), cycle_month="2026-11",
                               book_id=bid)
 
 
 def test_tie_is_reported_not_resolved():
-    votes, leaders = club.tally({1: 5, 2: 5, 3: 1})
+    votes, leaders = cycle.tally({1: 5, 2: 5, 3: 1})
     assert leaders == [1, 2] and votes == 5   # the tie, not a winner
-    assert club.tally({1: 5, 2: 4}) == (5, [1])
+    assert cycle.tally({1: 5, 2: 4}) == (5, [1])
 
 
 def test_poll_limits_are_checked_before_any_send():
-    assert club.build_poll("What next?", ["a", "b"]).multiple is True
+    assert cycle.build_poll("What next?", ["a", "b"]).multiple is True
     for bad in (["a"] * 11, ["y" * 56], []):
         with pytest.raises(ValueError):
-            club.build_poll("What next?", bad)
+            cycle.build_poll("What next?", bad)
     with pytest.raises(ValueError):
-        club.build_poll("x" * 301, ["a"])
-    assert len(club.ballot_label("T" * 60, "An Author")) == club.POLL_MAX_ANSWER
+        cycle.build_poll("x" * 301, ["a"])
+    assert len(cycle.ballot_label("T" * 60, "An Author")) == cycle.POLL_MAX_ANSWER
 
 
 def test_dynamic_items_exports_classes_not_instances():
@@ -184,13 +218,17 @@ def test_ballot_result_embed_presents_a_tie_as_a_tie():
     assert "Tied at 5" in tie.title and tie.footer.text is None  # nothing to open yet
     assert "Ulysses" in _field(tie, "Approvals") and "Dune" in _field(tie, "Approvals")
     win = views.ballot_embed(5, ["Ulysses"], [("Ulysses", 5), ("Dune", 4)], open_id=7)
-    assert win.title == "Ulysses wins" and "nomination:7" in win.footer.text
+    assert win.title == "Ulysses wins" and "#7" in win.footer.text
+    e = views.help_embed()
+    assert len(e) <= 6000 and all(len(f.value) <= 1024 for f in e.fields)
+    for cmd in ("/join", "/next", "/quote", "/cycle-open", "/schedule", "/status"):
+        assert any(cmd in f.value for f in e.fields), f"/help does not mention {cmd}"
 
 
 async def test_status_reads_the_real_reminder_queue_and_heartbeat(db):
     """The queries, not just the view: a typo in the cohort-scoped SQL only shows here."""
-    cid = await club.open_cycle(db, G, CH, await nom(db, "Ulysses"), cycle_month="2026-09")
-    await club.join_cohort(db, cid, U1)
+    cid = await cycle.open_cycle(db, G, CH, await nom(db, "Ulysses"), cycle_month="2026-09")
+    await cycle.join_cohort(db, cid, U1)
     for idx, (due, status) in enumerate(((100, "sent"), (200, "failed"), (9999, "pending")), 1):
         cur = await db.run("INSERT INTO checkpoints (cohort_id, idx, label, unit, start_ref,"
                            " end_ref, chapter_ceiling, due_at_utc, tz_id, local_wall) VALUES"
@@ -199,7 +237,7 @@ async def test_status_reads_the_real_reminder_queue_and_heartbeat(db):
         await db.run("INSERT INTO reminders (checkpoint_id, kind, due_at, status)"
                      " VALUES (?,'unlock',?,?)", cur.lastrowid, due, status)
     cog = club.Club(SimpleNamespace(db=db, cfg=None))
-    cohort = await club.cohort_of(db, G)
+    cohort = await cycle.cohort_of(db, G)
     rows = await cog._status_rows(cohort, 1000)
     assert (rows["sched"]["n"], rows["sched"]["fired"], rows["sched"]["nxt"]) == (3, 2, 9999)
     assert rows["rem"] == {"sent": 1, "failed": 1, "pending": 1}

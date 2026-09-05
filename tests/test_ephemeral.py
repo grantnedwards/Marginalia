@@ -23,9 +23,13 @@ ROLE_ID = 1545535072151670827
 SECRET, TITLE2 = "sister dies", "Belowdecks"
 
 
-class Role:  # what guild.get_role returns; AllowedMentions never inspects it
+class Role:  # what guild.get_role / create_role return; AllowedMentions never inspects it
     id = ROLE_ID
     mention = f"<@&{ROLE_ID}>"
+    deleted = False
+
+    async def delete(self, **kw) -> None:
+        self.deleted = True
 
 
 class Recorder:
@@ -53,6 +57,10 @@ class Recorder:
 
     # --- guild ---
     def get_role(self, role_id: int) -> Role | None:
+        return self.role
+
+    async def create_role(self, **kw) -> Role:
+        self.role = Role()
         return self.role
 
     # --- response ---
@@ -138,15 +146,33 @@ async def test_a_refusal_is_ephemeral_and_describes_nothing(loaded):
     assert not any(ch.isdigit() for ch in desc)  # no match count, no chapter number
 
 
-async def test_a_role_mention_is_explicitly_scoped_never_blanket(loaded):
-    """/roster is public BY DESIGN and mentions the cohort role, so it is the one reply
-    that may allow a mention -- exactly one, named."""
+async def test_roster_is_public_but_pings_nobody(loaded):
+    """Anyone can run /roster, so it must never notify the whole cohort: the role
+    renders as a pill and AllowedMentions is none()."""
     cog, inter = loaded.cogs["Club"], Recorder(role=Role())
     await cog.roster.callback(cog, inter)
     content, kw = inter.last()
     am = assert_nothing_is_mass_pinged(kw)
-    assert isinstance(am.roles, list) and [r.id for r in am.roles] == [ROLE_ID]
+    assert am.roles is False and kw["ephemeral"] is False
     assert Role.mention in content
+
+
+async def test_cycle_open_is_the_one_reply_that_pings_and_only_the_new_role(loaded):
+    """The month's announcement is the ONE mention the bot makes -- exactly one role,
+    named, public, with the persistent Join button attached."""
+    await loaded.db.run("UPDATE cohorts SET status = 'closed' WHERE id = 1")
+    await loaded.db.run("INSERT INTO nominations (id, guild_id, cycle_month, title, author,"
+                        " nominated_by) VALUES (1, ?, '2026-10', 'Ulysses', 'Joyce', ?)", G, U)
+    cog, inter = loaded.cogs["Club"], Recorder()
+    await cog.cycle_open.callback(cog, inter, nomination=1)
+    content, kw = inter.last()
+    am = assert_nothing_is_mass_pinged(kw)
+    assert isinstance(am.roles, list) and [r.id for r in am.roles] == [ROLE_ID]
+    assert kw["ephemeral"] is False and Role.mention in content and "2026-10" in content
+    assert any(c.custom_id == "mgl:join:2" for c in kw["view"].children)
+    assert inter.role.deleted is False
+    row = await loaded.db.one("SELECT tz_id, cycle_month FROM cohorts WHERE id = 2")
+    assert (row["tz_id"], row["cycle_month"]) == (loaded.cfg.tz, "2026-10")
 
 
 async def test_club_replies_default_to_ephemeral(loaded):

@@ -91,7 +91,7 @@ class Marginalia(commands.Bot):
         channel = self.get_channel(cid) or await self.fetch_channel(cid)
         link = ""
         if kind == "unlock":
-            from .cogs.reading import open_thread
+            from .progress import open_thread
 
             link = f"<#{await open_thread(self.db, cp, channel)}> "
         role_id = cp["role_id"]

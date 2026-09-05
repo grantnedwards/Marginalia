@@ -11,7 +11,7 @@ from marginalia import bot as botmod
 from marginalia.config import Config
 from marginalia.db import Database
 
-CLUB = {"join", "leave", "roster", "nominate", "cycle-open", "cycle-close", "ballot",
+CLUB = {"help", "join", "leave", "roster", "nominate", "cycle-open", "cycle-close", "ballot",
         "ballot-result", "status"}
 READING = {"schedule", "next", "pace", "progress", "progress set", "progress show", "meeting",
            "library", "dnf", "mystats"}
@@ -47,7 +47,9 @@ async def test_loading_every_cog_registers_the_whole_command_tree(loaded):
                 assert getattr(cog, attr) is want, f"{cog.qualified_name}.{attr}"
 
 
-async def test_cycle_open_refuses_the_wrong_channel_before_creating_a_role(loaded):
+async def test_cycle_open_refuses_before_creating_a_role(loaded):
+    """Every refusal -- wrong channel, unknown nomination, nothing named -- happens
+    BEFORE create_role, so a misfire never leaves an orphan role in the server."""
     club, sent = loaded.cogs["Club"], []
 
     class Stub:  # its own .guild and .response, so the whole call is one object
@@ -57,7 +59,7 @@ async def test_cycle_open_refuses_the_wrong_channel_before_creating_a_role(loade
             self.guild = self.response = self
 
         async def create_role(self, **kw):
-            raise PastTheGuard("wrong-channel /cycle-open reached create_role")
+            raise PastTheGuard("a refused /cycle-open reached create_role")
 
         async def send_message(self, text, **kw):
             sent.append(text)
@@ -66,8 +68,17 @@ async def test_cycle_open_refuses_the_wrong_channel_before_creating_a_role(loade
     interaction.channel_id = loaded.cfg.channel_id + 1
     await club.cycle_open.callback(club, interaction, nomination=1)
     assert sent and f"<#{loaded.cfg.channel_id}>" in sent[0]
-    assert (await loaded.db.one("SELECT COUNT(*) FROM cohorts"))[0] == 0
 
     interaction.channel_id = loaded.cfg.channel_id
-    with pytest.raises(PastTheGuard):  # positive control: the right channel proceeds
+    await club.cycle_open.callback(club, interaction, nomination=1)  # no such nomination
+    assert "no nomination #1" in sent[-1]
+    await club.cycle_open.callback(club, interaction)  # nothing named at all
+    assert "name a nomination" in sent[-1]
+    await club.cycle_open.callback(club, interaction, nomination=1, month="2026-13")
+    assert "not a month" in sent[-1]
+    assert (await loaded.db.one("SELECT COUNT(*) FROM cohorts"))[0] == 0
+
+    await loaded.db.run("INSERT INTO nominations (id, guild_id, cycle_month, title,"
+                        " nominated_by) VALUES (1, 1, '2026-09', 'Ulysses', 5)")
+    with pytest.raises(PastTheGuard):  # positive control: a valid call proceeds to the role
         await club.cycle_open.callback(club, interaction, nomination=1)

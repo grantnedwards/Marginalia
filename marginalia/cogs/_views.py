@@ -274,13 +274,42 @@ def join_embed(cycle_month: str, title: str, author: str, joined: int,
 
 
 def nomination_embed(nom_id: int, title: str, author: str, pitch: str, by: int,
-                     cover: discord.File | None = None) -> discord.Embed:
+                     cover: discord.File | None = None, month: str = "") -> discord.Embed:
     e = discord.Embed(title=title, colour=discord.Colour.blurple(),
                       description=pitch or "No pitch given -- add one next time.")
     e.add_field(name="Author", value=author or "unrecorded")
     e.add_field(name="Nominated by", value=f"<@{by}>")
-    e.set_footer(text=f"Nomination #{nom_id} -- an organizer puts it on the /ballot.")
+    e.set_footer(text=f"Nomination #{nom_id}{f' for {month}' if month else ''}"
+                      " -- an organizer puts it on the /ballot.")
     return _thumb(e, cover)
+
+
+def help_embed() -> discord.Embed:
+    """The one card a new member or organizer needs. Kept to what a phone shows without
+    scrolling far: the month in one line, then the commands grouped by who runs them."""
+    e = discord.Embed(
+        title="Marginalia -- how this works", colour=COLOUR,
+        description="A book club that runs itself in one channel. Each month: members"
+                    " nominate, a poll picks the book, you tap **Join this month**, and"
+                    " the bot posts reminders and a discussion thread for every checkpoint."
+                    " Times always show in *your* timezone.")
+    e.add_field(name="Reading along", inline=False, value=(
+        "`/join` `/leave` -- opt in or out of this month (no announcement)\n"
+        "`/next` -- what is due next, and its thread\n"
+        "`/progress set` -- where you are; `/pace` -- how that compares to the plan\n"
+        "`/quote` `/passage` -- a passage from the book, never past what has unlocked\n"
+        "`/find` -- just the citations, no text\n"
+        "`/dnf` -- set the book down quietly; `/library` -- everything the club has read\n"
+        "`/roster` `/mystats` `/nominate`"))
+    e.add_field(name="Running the club (organizers)", inline=False, value=(
+        "1. `/ingest` the EPUB (optional, enables quoting)\n"
+        "2. `/ballot` after members `/nominate`, then `/ballot-result` when it closes\n"
+        "3. `/cycle-open` in the club channel -- posts the Join button\n"
+        "4. `/schedule` the weekly checkpoints; `/meeting` the wrap-up\n"
+        "5. `/cycle-close` at the end of the month\n"
+        "`/status` shows whether reminders are actually running"))
+    e.set_footer(text="Everything personal is only visible to you. Nothing here ranks anyone.")
+    return e
 
 
 def ballot_embed(votes: int, leaders: Sequence[str], counts: Sequence[tuple[str, int]],
@@ -296,7 +325,8 @@ def ballot_embed(votes: int, leaders: Sequence[str], counts: Sequence[tuple[str,
     e.add_field(name="Approvals", value="\n".join(f"**{n}** {t[:60]}" for t, n in counts)
                 or "no votes recorded", inline=False)
     if open_id is not None:
-        e.set_footer(text=f"Open it with /cycle-open nomination:{open_id}")
+        e.set_footer(text=f"Next: /cycle-open in the club channel and pick it"
+                          f" (nomination #{open_id}).")
     return e
 
 

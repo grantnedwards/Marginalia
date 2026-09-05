@@ -181,34 +181,63 @@ class Quote(commands.Cog):
         return [app_commands.Choice(name=f"{r['title']} - {r['author']}"[:100], value=r["id"])
                 for r in rows if low in r["title"].lower()]
 
-    async def _reply(self, interaction: discord.Interaction, **kw: object) -> None:
+    async def _book(self, interaction: discord.Interaction, book: int | None) -> int | None:
+        """No `book:` means the one the club is reading now. Metadata only (INTERFACE DRIFT
+        as above): the cohort's book_id, never text."""
+        if book is not None:
+            return book
+        row = await self.db.one("SELECT book_id FROM cohorts WHERE guild_id = ? AND status IN"
+                                " ('open','active') ORDER BY id DESC LIMIT 1",
+                                interaction.guild_id or 0)
+        return int(row[0]) if row else None
+
+    async def _reply(self, interaction: discord.Interaction, book: int | None,
+                     **kw: object) -> None:
         """Every reply routes here so ephemeral and AllowedMentions are set once. serve()
         returns an embed, never message content; opts() drops the None-valued kwargs."""
+        book_id = await self._book(interaction, book)
+        if book_id is None:
+            await interaction.response.send_message(
+                "No cycle is open, so there is no book to search. Name one with `book:`.",
+                ephemeral=True)
+            return
         r = await serve(
             self.db, guild_id=interaction.guild_id or 0, channel_id=interaction.channel_id or 0,
-            user_id=interaction.user.id, **kw)  # type: ignore[arg-type]
+            user_id=interaction.user.id, book_id=book_id, **kw)  # type: ignore[arg-type]
         await interaction.response.send_message(
             ephemeral=r.ephemeral, allowed_mentions=discord.AllowedMentions.none(),
             **_views.opts(embed=r.embed, view=r.view, file=r.file))
 
+    _DESCRIBE = dict(
+        query="A word or phrase to look for in the text",
+        book="Which book. Default: the one the club is reading now",
+        share="Post it in the channel for everyone (default: only you see it)",
+    )
+
     @app_commands.command(description="Quote the best passage you are allowed to see.")
+    @app_commands.describe(**_DESCRIBE)
     @app_commands.autocomplete(book=book_ac)
-    async def quote(self, interaction: discord.Interaction, book: int, query: str,
-                    share: bool = False) -> None:
-        await self._reply(interaction, book_id=book, query=query, k=1, share=share)
+    async def quote(self, interaction: discord.Interaction, query: str,
+                    book: int | None = None, share: bool = False) -> None:
+        await self._reply(interaction, book, query=query, k=1, share=share)
 
     @app_commands.command(description="Citations only -- no text, no allowance spent.")
+    @app_commands.describe(query=_DESCRIBE["query"], book=_DESCRIBE["book"])
     @app_commands.autocomplete(book=book_ac)
-    async def find(self, interaction: discord.Interaction, book: int, query: str) -> None:
-        await self._reply(interaction, book_id=book, query=query, k=3, text=False)
+    async def find(self, interaction: discord.Interaction, query: str,
+                   book: int | None = None) -> None:
+        await self._reply(interaction, book, query=query, k=3, text=False)
 
     @app_commands.command(description="Quote up to three matching passages.")
+    @app_commands.describe(**_DESCRIBE)
     @app_commands.autocomplete(book=book_ac)
-    async def passage(self, interaction: discord.Interaction, book: int, query: str,
-                      share: bool = False) -> None:
-        await self._reply(interaction, book_id=book, query=query, k=3, share=share)
+    async def passage(self, interaction: discord.Interaction, query: str,
+                      book: int | None = None, share: bool = False) -> None:
+        await self._reply(interaction, book, query=query, k=3, share=share)
 
-    @app_commands.command(description="Organizer: parse an EPUB you own into the library.")
+    @app_commands.command(description="Organizer: add an EPUB you own so members can quote it.")
+    @app_commands.describe(epub="The .epub file (DRM-free). It is deleted after parsing",
+                           i_own_a_drm_free_copy="Confirm this is your own DRM-free copy")
     @app_commands.default_permissions()
     async def ingest(self, interaction: discord.Interaction, epub: discord.Attachment,
                      i_own_a_drm_free_copy: bool) -> None:
@@ -220,6 +249,7 @@ class Quote(commands.Cog):
             await take(self.db, str(path), i_own_a_drm_free_copy), ephemeral=True)
 
     @app_commands.command(description="Organizer: delete a book and everything quoted from it.")
+    @app_commands.describe(book="Which book to delete", confirm="Set True to really delete it")
     @app_commands.default_permissions()
     @app_commands.autocomplete(book=book_ac)
     async def purge_book(self, interaction: discord.Interaction, book: int,
