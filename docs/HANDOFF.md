@@ -23,7 +23,7 @@ a named test in `tests/`; run `.venv/bin/python -m pytest -q` for the output.
 | `db.py` | WAL in force, FK cascade, `UNIQUE(checkpoint_id, kind)`, idempotent migration, snowflake round-trip past 2^53, a write during a rolling-back `tx()` survives, overlapping `tx()` do not raise, FTS5 external-content triggers. |
 | `epub.py` | Fragment-addressed spines, Calibre-split files, no-ToC fallback to headings, and **DRM detection distinguished from font obfuscation** (the second must still parse). |
 | `library.py` | **The spoiler gate with positive controls both directions:** over-ceiling refuses AND under-ceiling serves, so an always-empty bug cannot pass as a working gate. Every fail-closed path returns chapter 0. Ceiling scoped to book + live cohort + due checkpoints. Thread pin does not outrank membership. FTS5 verbatim retrieval, the `rebuild` requirement, hostile query sanitization operator by operator, literal `\|\|` escaping. **The 2% / 30-day cap halts a sequential walk.** Per-quote AND per-response word caps, abutment and whole-chapter refusal. |
-| `bot.py` + cogs | One `deliver` callback dispatches on all kinds; restart backoff escalates 5/10/20/40/60, caps, resets, and gives up at 6 (sum 135s, asserted `< 600` = `deploy/watchdog.sh` STALE). **All three cogs load against a real `Marginalia` with no token and no HTTP**, registering the real command count: 21 top-level, 23 walked, 22 runnable. `/cycle-open` refuses outside `#florilegium` before `create_role`, with a right-channel positive control. |
+| `bot.py` + cogs | One `deliver` callback dispatches on all kinds; restart backoff escalates 5/10/20/40/60, caps, resets, and gives up at 6 (sum 135s, asserted `< 600` = `deploy/watchdog.sh` STALE). **All three cogs load against a real `Marginalia` with no token and no HTTP**, registering the real command count: 22 top-level, 24 walked, 23 runnable. `/cycle-open` refuses outside `#florilegium` before `create_role`, with a right-channel positive control. |
 | Ephemerality (`tests/test_ephemeral.py`) | **What the cogs hand Discord, not what a helper returns.** A recording fake Interaction pins: every book-text reply carries `ephemeral=True`; a refusal is ephemeral and carries no query echo, chapter title or match count; `/roster`'s role mention passes `AllowedMentions(everyone=False, users=False, roles=[role])` and never `.all()` or the default; `/pace`, `/mystats`, `/progress show` are ephemeral; a public quote needs `share=True` per invocation and still keeps the locator OUTSIDE the bars. Mutation-checked: `ephemeral=False`, `AllowedMentions.all()` and `quiet=False` each fail it, and each used to pass the whole suite. |
 | Invariants (7, AST-based) | Timestamp markup only in `timefmt`; book-text tables only in `library` + schema; `os.environ` only in `config`; every `Forbidden`/`NotFound` handler terminal; `mention_everyone` appears nowhere; `timefmt`/`schedule` import no discord; every module imports under a genuinely empty environment (`env={}` subprocess). |
 
@@ -37,7 +37,7 @@ live gateway or the unRAID box itself. The IMAGE is built and exercised -- see
 1. Gateway login with a real token; the ready line.
 2. The **Server Members Intent** is really granted -- privileged, and off it reads
    as an empty roster with no error anywhere.
-3. Guild-scoped sync lands and all 21 top-level commands appear instantly.
+3. Guild-scoped sync lands and all 22 top-level commands appear instantly.
 4. `default_permissions()` really hides the 8 organizer commands in the client.
 
 **Permissions and hierarchy (the silent killers)**
@@ -93,7 +93,7 @@ live gateway or the unRAID box itself. The IMAGE is built and exercised -- see
 
 ### The container, already built -- do NOT redo this
 
-Receipt: `.build/receipts/container_built.json`. Prose with the commands:
+Receipt: `.build/receipts/container_built.json` -- NOT in this repository (it stayed on the build laptop); the prose record with the commands is:
 `deploy/README.md`, section "What has actually been verified". The docker runtime
 used for it was installed for the run and removed afterwards, so there is no
 daemon on the build machine now.
@@ -125,14 +125,14 @@ daemon on the build machine now.
 
 A further container smoke suite was **in progress** as this was written. Its
 results are not recorded here or in `deploy/README.md`; check for a newer receipt
-under `.build/receipts/` before assuming this list is the whole of it.
+under `.build/receipts/` on the build laptop before assuming this list is the whole of it. On the unRAID box itself the container was built and started by `deploy/unraid-install.sh` on 2026-09-05; see `deploy/README.md`.
 
 ---
 
 ## Getting the code there
 
 `rsync -av --exclude .venv --exclude '*.db*' --exclude .env \
-  marginalia-lean/ unraid:/mnt/cache/appdata/marginalia/src/`
+  marginalia-lean/ unraid:/mnt/cache/appdata/marginalia/`
 
 Or clone from git if a remote exists. Either way `.env` must **never** travel --
 it is gitignored and excluded above. There is no `.env` in this tree and none
@@ -181,7 +181,7 @@ If it leaks: Bot -> Reset Token. Immediate and total. Full procedure in
 Invoke the workflow `marginalia-live-verify` with:
 
 ```json
-{ "root": "/mnt/cache/appdata/marginalia/src",
+{ "root": "/mnt/cache/appdata/marginalia",
   "guild_id": "<guild id>",
   "channel_id": "<#florilegium channel id>",
   "mode": "test" }

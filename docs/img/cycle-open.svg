@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="680" height="300" viewBox="0 0 680 300" font-family="-apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="14">
+  <rect width="680" height="300" rx="10" fill="#313338"/>
+  <!-- channel header -->
+  <rect x="0" y="0" width="680" height="40" rx="10" fill="#2b2d31"/>
+  <rect x="0" y="20" width="680" height="20" fill="#2b2d31"/>
+  <text x="18" y="26" fill="#949ba4" font-size="15" font-weight="600"># florilegium</text>
+  <text x="140" y="26" fill="#6d6f78" font-size="13">the club channel</text>
+  <!-- avatar -->
+  <circle cx="34" cy="76" r="18" fill="#5865f2"/>
+  <text x="34" y="82" text-anchor="middle" fill="#fff" font-weight="700" font-size="16">M</text>
+  <!-- header line -->
+  <text x="64" y="72" fill="#f2f3f5" font-weight="600" font-size="15">Marginalia</text>
+  <rect x="162" y="60" width="34" height="16" rx="4" fill="#5865f2"/>
+  <text x="179" y="72" text-anchor="middle" fill="#fff" font-size="10" font-weight="700">APP</text>
+  <text x="206" y="72" fill="#949ba4" font-size="12">Today at 9:00 AM</text>
+  <!-- content with role ping -->
+  <rect x="64" y="84" width="162" height="20" rx="4" fill="#5865f2" fill-opacity="0.3"/>
+  <text x="70" y="99" fill="#c9cdfb" font-weight="500">@Marginalia 2026-10</text>
+  <text x="232" y="99" fill="#dbdee1">is open for 2026-10. Tap to opt in for the month.</text>
+  <!-- embed -->
+  <rect x="64" y="112" width="440" height="128" rx="6" fill="#2b2d31"/>
+  <rect x="64" y="112" width="4" height="128" rx="2" fill="#5865f2"/>
+  <text x="84" y="138" fill="#f2f3f5" font-weight="700" font-size="16">Piranesi</text>
+  <text x="84" y="158" fill="#dbdee1">by Susanna Clarke</text>
+  <text x="84" y="184" fill="#f2f3f5" font-weight="600" font-size="12">CYCLE</text>
+  <text x="84" y="202" fill="#dbdee1">2026-10</text>
+  <text x="200" y="184" fill="#f2f3f5" font-weight="600" font-size="12">JOINED SO FAR</text>
+  <text x="200" y="202" fill="#dbdee1">0</text>
+  <text x="84" y="228" fill="#949ba4" font-size="12">Tap Join this month to opt in. /leave any time.</text>
+  <!-- cover thumbnail -->
+  <rect x="424" y="126" width="66" height="96" rx="4" fill="#1e1f22"/>
+  <rect x="432" y="134" width="50" height="80" rx="2" fill="#3f4147"/>
+  <text x="457" y="180" text-anchor="middle" fill="#949ba4" font-size="10">cover</text>
+  <!-- button -->
+  <rect x="64" y="252" width="130" height="34" rx="4" fill="#5865f2"/>
+  <text x="129" y="274" text-anchor="middle" fill="#fff" font-weight="600">Join this month</text>
+  <text x="206" y="274" fill="#6d6f78" font-size="12">works forever, even after the bot restarts</text>
+</svg>
