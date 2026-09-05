@@ -8,6 +8,7 @@ lies beyond the ceiling -- no chapter title, no match count; the refusal itself 
 """
 
 import asyncio
+import shutil
 from dataclasses import dataclass
 from pathlib import Path
 from tempfile import gettempdir
@@ -17,7 +18,7 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 
-from marginalia import library
+from marginalia import calibre, library
 from marginalia.cogs import _views
 from marginalia.db import Database
 from marginalia.epub import EncryptedEpubError
@@ -43,6 +44,10 @@ ATTEST = ("I only ingest a copy you own. Re-run with the DRM-free attestation se
 DRM = ("That file is encrypted, so it cannot be parsed. Please supply a DRM-free EPUB"
        " that you own.")
 IN_USE = "That book is still attached to a reading cohort, so I did not delete it."
+NO_LIBRARY = ("No Calibre library is configured, so there is nothing to pick from. Set"
+              " CALIBRE_LIBRARY and bind-mount the library read-only, or upload the file"
+              " with /ingest instead.")
+GONE = "Calibre still lists that book but its EPUB is not on disk any more."
 
 
 @dataclass(frozen=True)
@@ -134,17 +139,37 @@ async def serve(
     return Reply(embed=quote_card(bars, byline, file), ephemeral=not share, file=file)
 
 
-async def take(db: Database, path: str, attested: bool) -> str:
+async def take(db: Database, path: str, attested: bool, source: str = "uploaded file") -> str:
     if not attested:
         return ATTEST
     try:
-        return (f"Ingested book #{await library.ingest(db, path)}. The uploaded file has been"
+        return (f"Ingested book #{await library.ingest(db, path)}. The {source} has been"
                 " deleted -- only the parsed text is kept.")
     except EncryptedEpubError:
         return DRM
     finally:
         # ingest() already deleted it on success; off-loop because the poller shares it.
         await asyncio.to_thread(Path(path).unlink, True)
+
+
+async def take_from_calibre(db: Database, lib: str, book_id: int, attested: bool,
+                            tmp: Path) -> str:
+    """Ingest a book out of the read-only Calibre library.
+
+    THE COPY IS LOAD-BEARING: library.ingest() DELETES the file it is handed, so passing
+    the library path straight in would remove the book from Calibre. The bind mount is
+    read-only as a second guard, and this copy is the first.
+    """
+    if not attested:
+        return ATTEST
+    try:
+        found = await asyncio.to_thread(calibre.entry, lib, book_id)
+    except calibre.CalibreError as exc:
+        return f"I could not read the Calibre library: {exc}"
+    if found is None:
+        return GONE
+    await asyncio.to_thread(shutil.copyfile, found.path, tmp)
+    return await take(db, str(tmp), True, source=f"copy of {found.path.name}")
 
 
 async def purge(db: Database, book_id: int, confirm: bool) -> str:
@@ -234,6 +259,40 @@ class Quote(commands.Cog):
     async def passage(self, interaction: discord.Interaction, query: str,
                       book: int | None = None, share: bool = False) -> None:
         await self._reply(interaction, book, query=query, k=3, share=share)
+
+    async def calibre_ac(
+        self, interaction: discord.Interaction, current: str
+    ) -> list[app_commands.Choice[int]]:
+        """Titles from the Calibre library. Blocking sqlite + stat calls go to a thread,
+        because autocomplete runs on the event loop the reminder poller shares."""
+        lib = self.bot.cfg.calibre_library  # type: ignore[attr-defined]
+        if not lib:
+            return []
+        try:
+            found = await asyncio.to_thread(calibre.search, lib, current)
+        except calibre.CalibreError:
+            return []  # a missing mount must not make the picker hang or error
+        return [app_commands.Choice(name=f"{e.title} - {e.author}"[:100], value=e.book_id)
+                for e in found]
+
+    @app_commands.command(name="ingest-library",
+                          description="Organizer: add a book from the Calibre library.")
+    @app_commands.describe(book="Start typing a title from the Calibre library",
+                           i_own_a_drm_free_copy="Confirm this is your own DRM-free copy")
+    @app_commands.autocomplete(book=calibre_ac)
+    @app_commands.default_permissions()
+    async def ingest_library(self, interaction: discord.Interaction, book: int,
+                             i_own_a_drm_free_copy: bool) -> None:
+        # DEFER FIRST: copy + unzip + parse is far past the 3-second interaction deadline.
+        await interaction.response.defer(ephemeral=True, thinking=True)
+        lib = self.bot.cfg.calibre_library  # type: ignore[attr-defined]
+        if not lib:
+            await interaction.followup.send(NO_LIBRARY, ephemeral=True)
+            return
+        tmp = Path(gettempdir()) / f"mgl-cal-{interaction.id}.epub"
+        await interaction.followup.send(
+            await take_from_calibre(self.db, lib, book, i_own_a_drm_free_copy, tmp),
+            ephemeral=True)
 
     @app_commands.command(description="Organizer: add an EPUB you own so members can quote it.")
     @app_commands.describe(epub="The .epub file (DRM-free). It is deleted after parsing",

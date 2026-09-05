@@ -496,7 +496,7 @@ ephemeral by default: an ephemeral reply generates no push notification for
 anyone else, which is what actually defeats mobile lock-screen spoiler leaks.
 Never echo an out-of-range question publicly — the refusal itself spoils.
 Organizer commands gate with `default_member_permissions="0"`. There are 24
-commands in the tree (measured by loading the cogs, not counted): the
+commands in the tree walked (measured by loading the cogs, never counted by hand): the
 organizer-gated set is `/cycle-open`, `/cycle-close`, `/ballot`,
 `/ballot-result`, `/schedule`, `/meeting`, `/ingest`, `/purge_book` and
 `/status`.

@@ -11,11 +11,11 @@ from marginalia import bot as botmod
 from marginalia.config import Config
 from marginalia.db import Database
 
-CLUB = {"help", "join", "leave", "roster", "nominate", "cycle-open", "cycle-close", "ballot",
-        "ballot-result", "status"}
+CLUB = {"help", "join", "leave", "roster", "nominate", "cycle-open", "cycle-close",
+        "cycle-book", "ballot", "ballot-result", "status"}
 READING = {"schedule", "next", "pace", "progress", "progress set", "progress show", "meeting",
            "library", "dnf", "mystats"}
-QUOTE = {"quote", "find", "passage", "ingest", "purge_book"}
+QUOTE = {"quote", "find", "passage", "ingest", "ingest-library", "purge_book"}
 TREE = CLUB | READING | QUOTE
 TOP_LEVEL = len(TREE) - 2  # 'progress set'/'progress show' hang off the progress group
 

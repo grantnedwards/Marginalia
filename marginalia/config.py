@@ -25,11 +25,15 @@ class Config:
     # The club's home zone: every cohort is opened in it, so "/schedule at:19:00" means
     # 19:00 here. Discord renders each reader's own local time from the same message.
     tz: str = "UTC"
+    # Optional read-only Calibre library. Empty disables /ingest-library entirely, so a
+    # club with no Calibre keeps the upload path and nothing else changes.
+    calibre_library: str = ""
 
     def __repr__(self) -> str:
         return (
             f"Config(token=<redacted>, guild_id={self.guild_id}, "
-            f"channel_id={self.channel_id}, db_path={self.db_path!r}, tz={self.tz!r})"
+            f"channel_id={self.channel_id}, db_path={self.db_path!r}, tz={self.tz!r}, "
+            f"calibre_library={self.calibre_library!r})"
         )
 
 
@@ -67,4 +71,7 @@ def load(env: Mapping[str, str] | None = None) -> Config:
         # path here means exactly one file.
         db_path=os.path.expanduser(env["MARGINALIA_DB"].strip()),
         tz=_zone(env),
+        # Not validated here: an optional integration must not stop the bot booting if
+        # a bind mount is late or gone. /ingest-library reports it instead.
+        calibre_library=env.get("CALIBRE_LIBRARY", "").strip(),
     )

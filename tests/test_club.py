@@ -106,6 +106,38 @@ async def test_cycle_opens_on_a_bare_ingested_book(db, tmp_path):
     assert (await db.one("SELECT COUNT(*) FROM nominations"))[0] == 0
 
 
+async def test_attach_book_repoints_a_live_cycle_and_sweeps_the_stub(db, tmp_path):
+    """Opening a cycle before the EPUB exists leaves a text-less stub, and quoting stays
+    refused against it. Attaching is what turns quoting on without closing the month."""
+    cid = await cycle.open_cycle(db, G, CH, await nom(db, "T"), cycle_month="2026-09")
+    stub = (await db.one("SELECT book_id FROM cohorts WHERE id=?", cid))["book_id"]
+    await cycle.join_cohort(db, cid, U1)
+    assert await library.ceiling(db, G, CH, U1, stub) == library.REFUSED
+
+    with pytest.raises(ValueError):  # a not-yet-ingested id is refused, not attached
+        await cycle.attach_book(db, cid, stub)
+
+    bid = await library.ingest(db, str(mkepub(tmp_path)))
+    old, new = await cycle.attach_book(db, cid, bid)
+    assert (await db.one("SELECT book_id FROM cohorts WHERE id=?", cid))["book_id"] == bid
+    assert old == "T" and new
+    # The stub is swept, so /purge_book and the autocomplete never offer a ghost.
+    assert await db.one("SELECT 1 FROM books WHERE id=?", stub) is None
+    assert (await db.one("SELECT COUNT(*) FROM books"))[0] == 1
+    # Re-attaching the same book is a no-op, not a crash and not a second sweep.
+    assert await cycle.attach_book(db, cid, bid) == (new, new)
+
+
+async def test_attach_book_keeps_a_real_book_another_cohort_still_reads(db, tmp_path):
+    bid1 = await library.ingest(db, str(mkepub(tmp_path, name="one.epub")))
+    c1 = await cycle.open_cycle(db, G, CH, None, cycle_month="2026-08", book_id=bid1)
+    await db.run("UPDATE cohorts SET status='closed', closed_at=unixepoch() WHERE id=?", c1)
+    c2 = await cycle.open_cycle(db, G, CH, None, cycle_month="2026-09", book_id=bid1)
+    bid2 = await library.ingest(db, str(mkepub(tmp_path, cover=b"\x89PNG", name="two.epub")))
+    await cycle.attach_book(db, c2, bid2)
+    assert await db.one("SELECT 1 FROM books WHERE id=?", bid1) is not None
+
+
 async def test_latest_ballot_is_the_newest_poll_message(db):
     assert await cycle.latest_ballot(db, G) is None
     for title, mid in (("A", 100), ("B", 300), ("C", 200)):

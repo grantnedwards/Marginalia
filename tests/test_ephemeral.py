@@ -20,6 +20,7 @@ from marginalia.db import Database
 
 G, C, U = 1545535072151670824, 1545535072151670825, 1545535072151670826
 ROLE_ID = 1545535072151670827
+CARD_ID = 1545535072151670828  # the signup message /cycle-open posts and then remembers
 SECRET, TITLE2 = "sister dies", "Belowdecks"
 
 
@@ -69,6 +70,11 @@ class Recorder:
 
     async def defer(self, **kw) -> None:
         self.sent.append((None, kw))
+
+    async def original_response(self):
+        """The card just sent. cycle_open stores its id so /join and /leave can refresh
+        the joined count on it later."""
+        return type("Msg", (), {"id": CARD_ID})
 
     def last(self) -> tuple[str, dict]:
         assert self.sent, "the command replied to nobody"
@@ -171,8 +177,11 @@ async def test_cycle_open_is_the_one_reply_that_pings_and_only_the_new_role(load
     assert kw["ephemeral"] is False and Role.mention in content and "2026-10" in content
     assert any(c.custom_id == "mgl:join:2" for c in kw["view"].children)
     assert inter.role.deleted is False
-    row = await loaded.db.one("SELECT tz_id, cycle_month FROM cohorts WHERE id = 2")
+    row = await loaded.db.one("SELECT tz_id, cycle_month, signup_message_id FROM cohorts"
+                              " WHERE id = 2")
     assert (row["tz_id"], row["cycle_month"]) == (loaded.cfg.tz, "2026-10")
+    # Without the stored id, /join and /leave cannot find the card to update its count.
+    assert row["signup_message_id"] == CARD_ID
 
 
 async def test_club_replies_default_to_ephemeral(loaded):

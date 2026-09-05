@@ -64,7 +64,8 @@ Organizer commands are hidden from members. Grant them to a role under
 
 | Step | Command | Notes |
 |---|---|---|
-| 0 | `/ingest` | Upload a DRM-free EPUB you own. Enables quoting. The file is deleted after parsing; only the text is kept. Optional. |
+| 0 | `/ingest-library` | Pick a book straight out of your Calibre library by title. Enables quoting. Needs the optional read-only mount below. |
+| 0 | `/ingest` | The same thing by uploading a DRM-free EPUB you own. The file is deleted after parsing; only the text is kept. |
 | 1 | `/ballot` | Posts the poll from this cycle's nominations. Closes in 72 hours. |
 | 2 | `/ballot-result` | Reads the finished poll. A tie is reported as a tie. |
 | 3 | `/cycle-open` | In the club channel. Pick the winning nomination (autocomplete) and, if you ingested it, the book. Creates the month's role and posts the Join card. |
@@ -72,6 +73,7 @@ Organizer commands are hidden from members. Grant them to a role under
 | 5 | `/meeting` | Date and time of the wrap-up. Two reminders. |
 | 6 | `/cycle-close` | Ends the month and removes the role from everyone. History is kept. |
 | any | `/status` | Is the bot actually scheduling? Green, yellow or red. |
+| any | `/cycle-book` | Attach a book to a cycle that is already open, for when you opened it before ingesting. Re-run `/schedule` afterwards. |
 | rare | `/purge_book` | Delete a book's text, index and quote history in one command. |
 
 ---
@@ -93,6 +95,36 @@ Organizer commands are hidden from members. Grant them to a role under
   hours so nobody can walk through a chapter ten paragraphs at a time.
 
 ---
+
+## Reading from a Calibre library
+
+If you already keep your books in Calibre, mount the library read-only and organizers
+can pick a title with `/ingest-library` instead of hunting for a file to upload.
+
+```yaml
+volumes:
+  - /path/to/Calibre Library:/calibre-library:ro
+environment:
+  CALIBRE_LIBRARY: /calibre-library
+```
+
+Leave both out and nothing changes: `/ingest-library` says it has no library and
+`/ingest` still takes uploads.
+
+What it does and does not do, precisely:
+
+- It reads Calibre's own `metadata.db` **read-only** to list titles and authors, and
+  copies the EPUB out to a temp file before parsing. It never writes to the library.
+  Mount it `:ro` so that stays true even if this code is wrong.
+- The copy is not incidental. Ingesting deletes the file it is given, so handing it the
+  library path would delete the book out of Calibre. There is a test whose only job is
+  to catch that if it ever regresses.
+- It reads the title, author and cover from the EPUB itself, not from Calibre's
+  metadata, so a book with tidy Calibre metadata and a scruffy EPUB shows the scruffy
+  version. Fix it in Calibre and re-ingest if that matters.
+- It does not sync, watch, or tag anything back. It is a one-way copy at the moment you
+  run the command, and Marginalia keeps its own extracted text from then on.
+- Books with no EPUB format are not offered. Nothing else in the library is touched.
 
 ## Setup
 
@@ -177,7 +209,7 @@ layer does not provide, and the result is a silently corrupted database weeks la
 1. `docker logs -f marginalia` should end in one line naming the bot and the server.
    A bad token, a missing intent, or a wrong server ID each print one plain sentence
    saying what to fix.
-2. Type `/` in the club channel. All 23 commands appear immediately.
+2. Type `/` in the club channel. All 25 commands appear immediately.
 3. **Server Settings -> Roles: drag Marginalia's role above the `Marginalia YYYY-MM` roles
    it will create.** Discord only lets a bot manage roles below its own, and the error it
    gives when this is wrong is a bare "Missing Permissions". This one step is the cause
@@ -223,7 +255,7 @@ layer does not provide, and the result is a silently corrupted database weeks la
 
 ```bash
 python3 -m venv .venv && .venv/bin/pip install -r requirements-dev.txt
-.venv/bin/python -m pytest -q      # 208 tests, no token, no network
+.venv/bin/python -m pytest -q      # 217 tests, no token, no network
 .venv/bin/ruff check marginalia tests
 ```
 
@@ -233,6 +265,7 @@ marginalia/
   schedule.py  pure checkpoint planning and pace              (no discord import)
   db.py        aiosqlite, pragmas, migrations; schema.sql + migrations/
   epub.py      EPUB -> chapters and paragraphs
+  calibre.py   read-only view of a Calibre library on disk (optional)
   library.py   ingest, FTS5 search, THE spoiler gate, quote budget
   cycle.py     months, cohorts, membership, nominations, ballots
   progress.py  applying a plan, the meeting, thread unlock, member progress

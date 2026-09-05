@@ -262,13 +262,18 @@ def roster_embed(cycle_month: str, ids: Sequence[int]) -> discord.Embed:
     return e
 
 
+# club.py edits this ONE field in place to keep the count live, so the name is shared
+# rather than written twice. Renaming it here alone would silently stop the updates.
+JOINED_FIELD = "Joined so far"
+
+
 def join_embed(cycle_month: str, title: str, author: str, joined: int,
                cover: discord.File | None = None) -> discord.Embed:
     """The month's invitation, the single most-seen message the bot posts."""
     e = discord.Embed(title=title or "This month's book", colour=discord.Colour.blurple(),
                       description=f"by {author}" if author else "Author unrecorded")
     e.add_field(name="Cycle", value=cycle_month)
-    e.add_field(name="Joined so far", value=str(joined))
+    e.add_field(name=JOINED_FIELD, value=str(joined))
     e.set_footer(text="Tap Join this month to opt in. /leave any time.")
     return _thumb(e, cover)
 

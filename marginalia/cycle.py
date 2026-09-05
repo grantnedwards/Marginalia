@@ -92,6 +92,40 @@ async def open_cycle(db: Database, guild_id: int, channel_id: int,
     return int(cur.lastrowid or 0)
 
 
+async def attach_book(db: Database, cohort_id: int, book_id: int) -> tuple[str, str]:
+    """Point a LIVE cohort at an already-ingested book; returns (old title, new title).
+
+    This is the repair for opening a cycle before the EPUB was ingested. `open_cycle`
+    with no `book_id` makes a metadata-only row from the nomination, and quoting stays
+    refused against it because it has no text. Re-pointing here is what turns quoting on
+    without closing the month and stripping everyone's role.
+
+    The caller must re-run /schedule afterwards: `apply_plan` bakes `chapter_ceiling`
+    from the book's chapter_count at plan time, so checkpoints written against the old
+    0-chapter row still floor every ceiling to 0.
+    """
+    if await db.one("SELECT 1 FROM books WHERE id=? AND ingested_at IS NOT NULL",
+                    book_id) is None:
+        raise ValueError(f"book #{book_id} is not ingested -- /ingest-library it first")
+    row = await db.one("SELECT c.book_id, b.title FROM cohorts c JOIN books b ON b.id=c.book_id"
+                       " WHERE c.id=?", cohort_id)
+    if row is None:
+        raise ValueError("that cycle no longer exists")
+    old_id, old_title = int(row[0]), str(row[1])
+    new = await db.one("SELECT title FROM books WHERE id=?", book_id)
+    if old_id == book_id:
+        return old_title, str(new[0])
+    async with db.tx() as conn:
+        await conn.execute("UPDATE cohorts SET book_id=? WHERE id=?", (book_id, cohort_id))
+        await conn.execute("UPDATE nominations SET book_id=? WHERE book_id=?", (book_id, old_id))
+        # Sweep the stub this replaces, but ONLY a text-less one nothing else points at:
+        # a real ingested book stays, and the books FK from cohorts is RESTRICT anyway.
+        await conn.execute(
+            "DELETE FROM books WHERE id=? AND ingested_at IS NULL"
+            " AND NOT EXISTS (SELECT 1 FROM cohorts WHERE book_id=?)", (old_id, old_id))
+    return old_title, str(new[0])
+
+
 async def close_cycle(db: Database, cohort_id: int) -> list[int]:
     """End the month; returns the members whose role the caller must now strip. The
     `cohort_members` rows are KEPT -- the role going away is what makes the subscription

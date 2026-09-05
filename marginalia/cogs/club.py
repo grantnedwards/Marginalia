@@ -13,6 +13,7 @@ from discord.ext import commands
 
 from marginalia import library, reminders
 from marginalia.cogs._views import (
+    JOINED_FIELD,
     ballot_embed,
     cover_file,
     help_embed,
@@ -26,6 +27,7 @@ from marginalia.cycle import (
     LIVE,
     POLL_MAX_ANSWERS,
     add_nomination,
+    attach_book,
     ballot_label,
     build_poll,
     check_open,
@@ -185,6 +187,31 @@ class Club(commands.Cog):
 
     # --- members ----------------------------------------------------------------------
 
+    async def _sync_card(self, interaction: discord.Interaction, cohort) -> None:
+        """Keep the signup card's count live instead of frozen at its posting time.
+
+        The button is already ON that message, so the button path needs no fetch; /join
+        and /leave fetch it by the id cycle_open stored. Edits the ONE field rather than
+        rebuilding the embed, so the cover thumbnail and everything else survive. Every
+        failure is swallowed: a stale count is cosmetic and must never fail a join.
+        """
+        try:
+            msg = interaction.message
+            if msg is None and cohort["signup_message_id"]:
+                ch = interaction.guild.get_channel(int(cohort["channel_id"]))
+                msg = await ch.fetch_message(int(cohort["signup_message_id"])) if ch else None
+            if msg is None or not msg.embeds:
+                return
+            embed = msg.embeds[0]
+            at = next((i for i, f in enumerate(embed.fields) if f.name == JOINED_FIELD), None)
+            count = str(len(await roster_ids(self.db, cohort["id"])))
+            if at is None or embed.fields[at].value == count:
+                return  # unchanged: do not spend an edit, they are rate-limited per message
+            embed.set_field_at(at, name=JOINED_FIELD, value=count, inline=True)
+            await msg.edit(embed=embed)
+        except (discord.HTTPException, AttributeError, KeyError):
+            pass
+
     async def opt_in(self, interaction: discord.Interaction, cohort_id: int) -> None:
         """Shared by /join and the persistent button."""
         cohort = await self.db.one("SELECT * FROM cohorts WHERE id=?", cohort_id)
@@ -196,6 +223,7 @@ class Club(commands.Cog):
         await _reply(interaction, err or (
             f"You're in for {cohort['cycle_month']}. Try /next to see what is due first."
             if fresh else "You're already in for this month."))
+        await self._sync_card(interaction, cohort)
 
     @app_commands.command(description="How Marginalia works, and every command in one place.")
     async def help(self, interaction: discord.Interaction) -> None:
@@ -213,6 +241,7 @@ class Club(commands.Cog):
         await leave_cohort(self.db, cohort["id"], interaction.user.id)
         err = await _apply_role(interaction.user, self._role(interaction.guild, cohort), add=False)
         await _reply(interaction, err or "You're out. Rejoin any time with /join.")
+        await self._sync_card(interaction, cohort)
 
     @app_commands.command(description="Who is reading with us this month.")
     async def roster(self, interaction: discord.Interaction) -> None:
@@ -290,6 +319,30 @@ class Club(commands.Cog):
         await _reply(interaction, f"{role.mention} is open for {month}. Tap to opt in for"
                      " the month.", role=role, quiet=False, view=view, file=file,
                      embed=join_embed(month, row["title"], row["author"], 0, file))
+        # Remember the card, so /join and /leave can refresh its count too -- the button
+        # gets the message for free, a slash command does not.
+        card = await interaction.original_response()
+        await self.db.run("UPDATE cohorts SET signup_message_id=? WHERE id=?",
+                          card.id, cohort_id)
+
+    @app_commands.command(name="cycle-book",
+                          description="Organizer: attach a book to the open cycle")
+    @app_commands.describe(book="The book to quote from, already added with /ingest-library")
+    @app_commands.autocomplete(book=book_ac)
+    @app_commands.default_permissions()
+    async def cycle_book(self, interaction: discord.Interaction, book: int) -> None:
+        """The repair for a cycle opened before its EPUB existed: quoting stays refused
+        until the cohort points at a row that actually holds text."""
+        if (cohort := await self._cohort(interaction)) is None:
+            return
+        try:
+            old, new = await attach_book(self.db, cohort["id"], book)
+        except ValueError as exc:
+            await _reply(interaction, f"Cannot attach that: {exc}.")
+            return
+        await _reply(interaction, f"{cohort['cycle_month']} now reads **{new}**"
+                     + (f", was **{old}**." if old != new else ".")
+                     + " Re-run /schedule so the checkpoints unlock real chapters.")
 
     @app_commands.command(name="cycle-close",
                           description="Organizer: end the cycle and take back the month's role")

@@ -33,6 +33,7 @@ services:
       TZ: America/Los_Angeles
       CLUB_TZ: America/Los_Angeles   # the club's zone: what "/schedule at:19:00" means
       MARGINALIA_DB: /data/marginalia.db
+      CALIBRE_LIBRARY: /calibre-library   # blank or absent disables /ingest-library
 
     # THE DATABASE. /mnt/cache/... is a DIRECT disk path. Do NOT change this to
     # /mnt/user/... -- that goes through unRAID's shfs FUSE layer, which does not
@@ -47,6 +48,13 @@ services:
     # would hand the container write access to the entire source tree.
     volumes:
       - /mnt/cache/appdata/marginalia/data:/data
+      # OPTIONAL, and READ-ONLY on purpose. /ingest-library reads Calibre's metadata.db
+      # and copies an EPUB out; `ro` is what guarantees a bug can never write or delete
+      # in the library. /mnt/user is deliberate here and is NOT the database rule above:
+      # this library belongs to Calibre, we only read it, and /mnt/user is what
+      # calibre-web-automated mounts, so both always see the same books.
+      # Drop this line and CALIBRE_LIBRARY if you have no Calibre.
+      - /mnt/user/appdata/calibre/Calibre Library:/calibre-library:ro
 
     # No `ports:`. Deliberately. The Discord gateway connection is OUTBOUND --
     # a websocket the bot opens to Discord. There is no inbound listener, so

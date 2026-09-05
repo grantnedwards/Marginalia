@@ -88,6 +88,22 @@ resolve CLUB_TZ America/Los_Angeles
 resolve TZ "$CLUB_TZ"
 export MARGINALIA_DB=/data/marginalia.db
 
+# Optional Calibre library, mounted READ-ONLY. /mnt/user is deliberate here and is not
+# the database rule: this is Calibre's library, not ours, we only ever read it, and
+# /mnt/user is what calibre-web-automated mounts -- so both see exactly the same books.
+CALIBRE_HOST="${CALIBRE_HOST:-$(tpl_of /calibre-library)}"
+CALIBRE_HOST="${CALIBRE_HOST:-/mnt/user/appdata/calibre/Calibre Library}"
+mounts=(-v "$DATA:/data")
+if [ -f "$CALIBRE_HOST/metadata.db" ]; then
+  say "Calibre library: $CALIBRE_HOST (read-only)"
+  mounts+=(-v "$CALIBRE_HOST:/calibre-library:ro")
+  export CALIBRE_LIBRARY=/calibre-library
+else
+  say "no Calibre library at $CALIBRE_HOST -- /ingest-library will say so and /ingest still works"
+  export CALIBRE_LIBRARY=""
+  CALIBRE_HOST=""
+fi
+
 # --- 4. template ------------------------------------------------------------------
 # Render the repo's template with the resolved values, so the Docker tab shows what
 # the container actually has. awk, not sed: no delimiter or backreference to escape.
@@ -95,7 +111,8 @@ say "unRAID template $TEMPLATE"
 [ -f "$SRC_TEMPLATE" ] || die "missing $SRC_TEMPLATE"
 mkdir -p "$TEMPLATE_DIR"
 awk -v tok="$DISCORD_TOKEN" -v gid="$GUILD_ID" -v cid="$BOOK_CLUB_CHANNEL_ID" \
-    -v ctz="$CLUB_TZ" -v tz="$TZ" -v mdb="$MARGINALIA_DB" '
+    -v ctz="$CLUB_TZ" -v tz="$TZ" -v mdb="$MARGINALIA_DB" \
+    -v cal="$CALIBRE_LIBRARY" -v calhost="$CALIBRE_HOST" -v data="$DATA" '
 function put(val,   i, head, j) {
   i = index($0, "</Config>"); if (i == 0) return
   head = substr($0, 1, i - 1); j = length(head)
@@ -108,6 +125,9 @@ function put(val,   i, head, j) {
 /Target="CLUB_TZ"/              { put(ctz) }
 /Target="TZ"/                   { put(tz)  }
 /Target="MARGINALIA_DB"/        { put(mdb) }
+/Target="CALIBRE_LIBRARY"/      { put(cal) }
+/Target="\/calibre-library"/    { put(calhost) }
+/Target="\/data"/               { put(data) }
 { print }
 ' "$SRC_TEMPLATE" > "$TEMPLATE.tmp" || die "could not render the template"
 # cp then rm, never mv, onto the vfat flash.
@@ -127,7 +147,8 @@ say "creating $NAME"
 docker create --name "$NAME" \
   --restart unless-stopped --stop-signal SIGINT \
   -e DISCORD_TOKEN -e GUILD_ID -e BOOK_CLUB_CHANNEL_ID -e CLUB_TZ -e TZ -e MARGINALIA_DB \
-  -v "$DATA:/data" \
+  -e CALIBRE_LIBRARY \
+  "${mounts[@]}" \
   -l net.unraid.docker.managed=dockerman \
   -l "net.unraid.docker.icon=$ICON" \
   "$IMAGE" >/dev/null || die "could not create the container"

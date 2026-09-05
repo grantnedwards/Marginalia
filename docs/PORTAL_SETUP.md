@@ -121,7 +121,7 @@ first boot you skipped this step and you got lucky.
 
 **Why MESSAGE CONTENT stays off:** Marginalia never reads message text. Slash
 options, button clicks and modal fields all arrive as structured data inside the
-interaction payload, gated on nothing. All 22 commands are slash commands; there
+interaction payload, gated on nothing. All 25 commands are slash commands; there
 is no prefix command and no `on_message`. Turning it on gains nothing, puts the
 app in scope for privileged-intent review at the verification threshold, and
 widens a token leak from "can post in one channel" to "can read every message in
@@ -487,8 +487,8 @@ Each item says what CORRECT looks like, so partial is recognisable as partial.
      deliberate: the old behaviour logged a warning and synced anyway, leaving
      eight commands absent from Discord with the bot looking green. Fix the
      import; it is a code problem, not a portal one.
-2. **Commands appear INSTANTLY.** Type `/`. Correct: **22** top-level entries,
-   immediately -- `/progress` is a group, so 23 runnable. Guild-scoped
+2. **Commands appear INSTANTLY.** Type `/`. Correct: **25** top-level entries,
+   immediately -- `/progress` is a group, so 26 runnable. Guild-scoped
    registration propagates instantly; only global commands take an hour and this
    bot registers none. Zero commands means a wrong `GUILD_ID` (step 10) or a
    missing `applications.commands` scope (step 8). Do NOT loop the sync -- the
@@ -601,7 +601,7 @@ Every item needs a live gateway. Nothing here has ever held a token.
 | `create_scheduled_event`'s docstring names only `manage_events` and is stale | **MEASURED** |
 | `recurrence_rule` does not exist in 2.7.1 | **MEASURED** |
 | Timestamp markup carries **seconds**, not milliseconds | **MEASURED** |
-| 22 top-level / 23 runnable commands, 3 cogs | **MEASURED** by loading all three cogs offline against a real `Marginalia` |
+| 25 top-level / 26 runnable commands, 3 cogs | **MEASURED** by loading all three cogs offline against a real `Marginalia` |
 | `create_events` (bit 44) is *sufficient* on the live API | **UNVERIFIED** -- test in the throwaway guild |
 | A role mention from the interaction path really notifies | **UNVERIFIED** -- the most valuable check on the list |
 | An ephemeral response really suppresses others' push notifications | **UNVERIFIED** -- the whole spoiler design rests on it |
