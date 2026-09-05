@@ -30,7 +30,8 @@ services:
     env_file: ./.env
 
     environment:
-      TZ: America/Chicago
+      TZ: America/Los_Angeles
+      CLUB_TZ: America/Los_Angeles   # the club's zone: what "/schedule at:19:00" means
       MARGINALIA_DB: /data/marginalia.db
 
     # THE DATABASE. /mnt/cache/... is a DIRECT disk path. Do NOT change this to

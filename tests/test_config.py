@@ -28,3 +28,11 @@ def test_snowflake_stays_an_exact_int() -> None:
     cfg = load(ENV)
     assert isinstance(cfg, Config)
     assert cfg.guild_id == 1545535072151670824
+
+
+def test_club_timezone_comes_from_club_tz_then_tz_then_utc() -> None:
+    assert load(ENV).tz == "UTC"
+    assert load({**ENV, "TZ": "America/Los_Angeles"}).tz == "America/Los_Angeles"
+    assert load({**ENV, "TZ": "UTC", "CLUB_TZ": "Europe/London"}).tz == "Europe/London"
+    with pytest.raises(ConfigError, match="CLUB_TZ"):  # a typo fails at boot, not at 03:00
+        load({**ENV, "CLUB_TZ": "America/Chicgo"})
