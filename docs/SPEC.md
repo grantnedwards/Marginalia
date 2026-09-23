@@ -237,10 +237,14 @@ def plan(total: int, weeks: int, weekday: int, at: time, tz: str,
 # declares PURE, and the thing that makes it exhaustively testable. Callers pass
 # the cycle's start date explicitly. A spec-literal call now raises TypeError
 # rather than silently scheduling from "today".
-def reminders_for(cp: Checkpoint) -> list[Reminder]
+def reminders_for(cp: Checkpoint) -> list[Reminder]      # T-24h, unlock. NO T-1h: a
+                                                         # deadline's hour warning nagged
 def reminders_for_meeting(due: Wall) -> list[Reminder]   # meeting-T-24h, meeting-T-1h;
                                                          # same bounded GRACE, no unlock twin
-def pace(total: int, done: int, start: datetime, end: datetime, now: datetime) -> tuple[float, int]
+def pace(total: int, done: int, expected: int) -> tuple[float, int]
+# `expected` is the end_ref of the last checkpoint that has fallen due (0 before the
+# first). CHANGED 2026-09-05 from a calendar interpolation, which read "a chapter
+# behind" six days out of seven for a member exactly on plan.
 ```
 
 Cover the whole book exactly once — no gaps, no overlaps, no empty checkpoint;
@@ -252,9 +256,8 @@ Two behaviours moved here from deleted docstrings (comment budget):
 - `plan()` RAISES on degenerate input rather than coalescing. Coalescing would
   have to either change the cadence the organizer asked for, or emit an empty
   checkpoint that unlocks nothing — both worse than a clear error.
-- `pace()` treats a zero-length or inverted schedule as `frac = 1.0` once
-  `now >= end`, else `0.0`. That is what avoids `ZeroDivisionError` without a
-  special case. `unlock` gets infinite
+- `pace()` clamps `expected` into `0..total`, so a hand-edited row cannot put
+  the expectation past the end of the book. `unlock` gets infinite
 grace because it is a durable state transition; "starts in 1 hour" delivered
 three hours late is actively false, hence the bounded windows.
 

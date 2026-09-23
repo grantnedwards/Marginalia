@@ -21,7 +21,7 @@ flowchart LR
     B --> C["/ballot-result<br/>the winner"]
     C --> D["/cycle-open<br/>role + Join button"]
     D --> E["/schedule<br/>weekly checkpoints"]
-    E --> F["reminders<br/>24h and 1h before"]
+    E --> F["reminder the day before,<br/>then the unlock"]
     F --> G["a thread opens<br/>per checkpoint"]
     G --> H["/meeting<br/>wrap-up discussion"]
     H --> I["/cycle-close<br/>role comes off"]
@@ -70,7 +70,7 @@ Organizer commands are hidden from members. Grant them to a role under
 | 2 | `/ballot-result` | Reads the finished poll. A tie is reported as a tie. |
 | 3 | `/cycle-open` | In the club channel. Pick the winning nomination (autocomplete) and, if you ingested it, the book. Creates the month's role and posts the Join card. |
 | 4 | `/schedule` | `total` pages (or chapters), `weeks`, a weekday from the dropdown, a time. Shows a preview; nothing is written until you press **Create schedule**. Safe to re-run: sent reminders are left alone. Pass `events: False` on a re-run, or the Events tab gets duplicates. |
-| 5 | `/meeting` | Date and time of the wrap-up. Two reminders. |
+| 5 | `/meeting` | Date and time of the wrap-up. Reminders the day before and an hour before. |
 | 6 | `/cycle-close` | Ends the month and removes the role from everyone. History is kept. |
 | any | `/status` | Is the bot actually scheduling? Green, yellow or red. |
 | any | `/cycle-book` | Attach a book to a cycle that is already open, for when you opened it before ingesting. Re-run `/schedule` afterwards. |
@@ -232,7 +232,9 @@ layer does not provide, and the result is a silently corrupted database weeks la
   snapshot over `data/marginalia.db`, delete the `-wal` and `-shm` files, start.
 - **Reminders are rows, not timers.** A restart, a crash, or a week of downtime never
   loses one: a checkpoint unlock that came due while the bot was down fires when it comes
-  back. "Due in an hour" reminders expire instead, because sending them late would be a lie.
+  back. "Due tomorrow" reminders expire instead, because sending them late would be a lie.
+  There is no "due in an hour" for a reading deadline -- members found it nagging -- only
+  for the wrap-up meeting, which is an appointment.
 - **Exit codes** from `docker logs`: 2 missing config, 3 database cannot be opened,
   4 token rejected, 5 Server Members intent not enabled, 6 wrong server ID or missing
   `applications.commands` scope.

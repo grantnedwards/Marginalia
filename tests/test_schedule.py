@@ -56,10 +56,14 @@ def test_due_keeps_local_wall_time_across_dst():
 def test_reminders_kinds_offsets_and_grace():
     cp = cps(10, 1)[0]
     rs = schedule.reminders_for(cp)
-    assert [r.kind for r in rs] == ["T-24h", "T-1h", "unlock"]
-    assert [r.grace for r in rs] == [6 * 3600, 45 * 60, -1]
+    assert [r.kind for r in rs] == ["T-24h", "unlock"]  # no hour warning for a deadline
+    assert [r.grace for r in rs] == [6 * 3600, -1]
     assert rs[-1].due == cp.due.instant
-    assert [cp.due.instant - r.due for r in rs[:2]] == [timedelta(hours=24), timedelta(hours=1)]
+    assert cp.due.instant - rs[0].due == timedelta(hours=24)
+    # The meeting is the one place the hour warning survives: an appointment, not a deadline.
+    ms = schedule.reminders_for_meeting(cp.due)
+    assert [(r.kind, r.grace) for r in ms] == [("meeting-T-24h", 6 * 3600),
+                                                ("meeting-T-1h", 45 * 60)]
     assert schedule.GRACE["unlock"] < 0  # durable: infinite grace
 
 

@@ -85,7 +85,7 @@ class Marginalia(commands.Bot):
         if cp is None:  # FK cascade makes this impossible; fail loudly if it happens
             raise LookupError(f"reminder {row['id']} has no checkpoint")
         kind = row["kind"]
-        # T-24h/T-1h go INTO the thread; the unlock CREATES it, so it is announced
+        # T-24h goes INTO the thread when one exists; the unlock CREATES it, so it is announced
         # in the cohort channel.
         cid = cp["channel_id"] if kind == "unlock" else (cp["thread_id"] or cp["channel_id"])
         channel = self.get_channel(cid) or await self.fetch_channel(cid)
@@ -93,11 +93,13 @@ class Marginalia(commands.Bot):
         if kind == "unlock":
             from .progress import open_thread
 
-            link = f"<#{await open_thread(self.db, cp, channel)}> "
+            # At the END: a channel mention renders as the thread's name, and that name
+            # already contains the label, so leading with it read "Chapter 3 Chapter 3".
+            link = f" -- discuss in <#{await open_thread(self.db, cp, channel)}>"
         role_id = cp["role_id"]
         text = (
-            f"{f'<@&{role_id}> ' if role_id else ''}{link}**{cp['label']}** "
-            f"{WORDING.get(kind, kind)} -- {timefmt.when(cp['due_at_utc'])}"
+            f"{f'<@&{role_id}> ' if role_id else ''}**{cp['label']}** "
+            f"{WORDING.get(kind, kind)} -- {timefmt.when(cp['due_at_utc'])}{link}"
         )
         # roles=[...] EXPLICITLY: the default parses users only, so a role mention
         # otherwise renders blue and pings NOBODY.

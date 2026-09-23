@@ -86,9 +86,13 @@ def plan(
 
 
 def reminders_for(cp: Checkpoint) -> list[Reminder]:
+    """Two per checkpoint: the day-before nudge and the unlock. There is deliberately NO
+    "due in an hour" for a reading deadline -- the club found it nagging ("unnecessary and
+    stressful"), and an hour cannot rescue a chapter anyway. The meeting keeps its hour
+    warning below because a meeting is an appointment, not a deadline."""
     return [
         Reminder(k, cp.due.instant - timedelta(seconds=_BEFORE[k]), GRACE[k])
-        for k in ("T-24h", "T-1h", "unlock")
+        for k in ("T-24h", "unlock")
     ]
 
 

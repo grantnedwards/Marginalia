@@ -59,11 +59,11 @@ async def db(tmp_path):
 
 async def test_plan_writes_checkpoints_and_reminder_fanout(db):
     cps = schedule.plan(34, 8, **PLAN)
-    assert await progress.apply_plan(db, 1, cps, "America/Chicago", 34) == (8, 24)
+    assert await progress.apply_plan(db, 1, cps, "America/Chicago", 34) == (8, 16)  # 2 per cp
     kinds = [x[0] for x in await db.all(
         "SELECT kind FROM reminders rem JOIN checkpoints c ON c.id = rem.checkpoint_id"
         " WHERE c.idx = 1 ORDER BY due_at")]
-    assert kinds == [x.kind for x in schedule.reminders_for(cps[0])] == ["T-24h", "T-1h", "unlock"]
+    assert kinds == [x.kind for x in schedule.reminders_for(cps[0])] == ["T-24h", "unlock"]
     assert (await db.one("SELECT chapter_ceiling FROM checkpoints WHERE idx = 8"))[0] == 34
 
 
@@ -71,9 +71,9 @@ async def test_reschedule_drops_pending_keeps_sent(db):
     await progress.apply_plan(db, 1, schedule.plan(34, 8, **PLAN), "America/Chicago", 34)
     await db.run("UPDATE reminders SET status = 'sent' WHERE kind = 'unlock'")
     _, new = await progress.apply_plan(db, 1, schedule.plan(34, 8, **PLAN), "America/Chicago", 34)
-    assert new == 16  # the 8 sent unlocks were not re-created ...
+    assert new == 8  # the 8 sent unlocks were not re-created ...
     rows = await db.all("SELECT status, COUNT(*) FROM reminders GROUP BY status ORDER BY 1")
-    assert [tuple(x) for x in rows] == [("pending", 16), ("sent", 8)]  # ... nor duplicated
+    assert [tuple(x) for x in rows] == [("pending", 8), ("sent", 8)]  # ... nor duplicated
 
 
 async def test_shorter_replan_sweeps_only_this_cohorts_surplus_weeks(db):
@@ -194,8 +194,8 @@ async def test_meeting_anchor_and_its_two_reminders_persist(db):
     await progress.apply_plan(db, 2, schedule.plan(34, 8, **PLAN), "America/Chicago", 34)
     w, rem = await progress.set_meeting(db, 1, date(2026, 4, 12), time(19, 0), "America/Chicago")
     assert rem == 2
-    # The purge is THIS anchor's own pending rows: both cohorts' 24 weekly reminders live.
-    assert (await db.one("SELECT COUNT(*) FROM reminders WHERE status = 'pending'"))[0] == 50
+    # The purge is THIS anchor's own pending rows: both cohorts' 16 weekly reminders live.
+    assert (await db.one("SELECT COUNT(*) FROM reminders WHERE status = 'pending'"))[0] == 34
     cp = await db.one("SELECT * FROM checkpoints WHERE is_meeting_anchor = 1")
     assert (cp["idx"], cp["due_at_utc"], cp["chapter_ceiling"]) == (0, unix(w.instant), 0)
     rows = await db.all("SELECT kind, due_at, grace_secs FROM reminders WHERE checkpoint_id = ?"
